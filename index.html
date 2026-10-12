@@ -69,6 +69,10 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .status-line{font-size:.82rem;color:var(--muted);margin:4px 0}
 .hit{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:7px 0;background:var(--field)}
 .hit p{margin:0;color:var(--text);font-size:.88rem}
+details{margin:8px 0}summary{cursor:pointer;font-weight:700;padding:8px 2px;color:#dce7fc}summary .n{color:var(--muted);font-weight:500}
+.synth{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--panel2);margin:10px 0}.synth p{color:var(--text)}
+.pipe{list-style:none;padding:0;margin:12px 0 0;font-size:.86rem;color:var(--muted)}.pipe li{margin:3px 0}.pipe li.ok{color:var(--green)}.pipe li.err{color:var(--amber)}
+.auto{font-size:.76rem;color:var(--blue)}
 @media(max-width:800px){main{grid-template-columns:1fr}.wide{grid-column:auto}.grid2,.searchlist{grid-template-columns:1fr}.full{grid-column:auto}.panel{padding:15px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 @media print{
@@ -108,7 +112,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
 <div class="full"><label for="context">Contexte pour limiter les homonymes (facultatif)</label><input id="context" autocomplete="off" placeholder="Ville, employeur, école, métier…"></div>
 </div>
 <div class="notice">L’application ne sert pas à accéder à des comptes privés, retrouver une adresse personnelle ou suivre les déplacements privés d’une personne. Les voyages ne sont consignés que s’ils sont explicitement publiés par des sources publiques.</div>
-<div class="actions"><button class="primary" id="generate" disabled>Générer les recherches</button><button id="clear">Tout effacer</button></div>
+<div class="actions"><button class="primary" id="autoRun" disabled>Lancer l’analyse automatique</button><button id="generate" disabled>Générer les recherches seulement</button><button id="clear">Tout effacer</button></div>
+<ul class="pipe" id="pipe" aria-live="polite"></ul>
 <div class="msg" id="idmsg" role="alert"></div>
 </section>
 
@@ -122,7 +127,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 
 <section class="panel wide noprint">
 <h2>3. Registres publics ouverts (automatique)</h2>
-<p>Interroge trois sources ouvertes : le Registre national des entreprises (dirigeants publiés), Wikipédia et Wikidata. Seuls le prénom et le nom sont envoyés à ces services, après ton clic. L’e-mail et le téléphone ne sont jamais transmis. Les adresses ne sont pas affichées.</p>
+<p>Interroge cinq sources ouvertes : le Registre national des entreprises (dirigeants publiés), Wikipédia, Wikidata, GitHub (profils publics) et OpenAlex (publications). Seuls le prénom et le nom sont envoyés à ces services, après ton clic. L’e-mail et le téléphone ne sont jamais transmis. Les adresses ne sont pas affichées.</p>
 <div class="actions"><button class="primary" id="lookup" disabled>Interroger les registres</button></div>
 <div id="found" aria-live="polite"></div>
 </section>
@@ -159,14 +164,14 @@ button:disabled{opacity:.45;cursor:not-allowed}
 </div>
 <div class="actions noprint">
 <button id="csv">Exporter CSV</button><button id="json">Exporter JSON</button><button id="html" class="primary">Télécharger le rapport HTML</button><button id="print">Imprimer / PDF</button>
-<button id="importBtn">Importer un rapport JSON</button><input type="file" id="importFile" accept="application/json,.json" hidden>
+<button id="rmAuto">Retirer les ajouts automatiques</button><button id="importBtn">Importer un rapport JSON</button><input type="file" id="importFile" accept="application/json,.json" hidden>
 </div>
 <label class="check noprint" for="maskExport"><input type="checkbox" id="maskExport" checked>Masquer l’e-mail et le téléphone dans les exports</label>
 <label class="check noprint" for="persist"><input type="checkbox" id="persist">Garder le brouillon de rapport dans ce navigateur (désactivé par défaut ; les identifiants ne sont jamais enregistrés)</label>
 <div id="report"></div>
 </section>
 </main>
-<div class="foot noprint">Les recherches web sont des liens préparés ; les pages ne sont pas collectées automatiquement. Seules les trois API ouvertes de l’étape 3 sont interrogées. Une automatisation plus large devra passer par des API officielles, avec quotas et clés protégées côté serveur.</div>
+<div class="foot noprint">Les recherches web sont des liens préparés ; les pages ne sont pas collectées automatiquement. Seules les cinq API ouvertes de l’étape 3 sont interrogées. Une automatisation plus large devra passer par des API officielles, avec quotas et clés protégées côté serveur.</div>
 
 <script>
 const $=id=>document.getElementById(id);
@@ -247,28 +252,30 @@ function buildSearches(){
  add(O,'Wayback Machine','Versions archivées d’une page publique','https://web.archive.org/');
  searchCards=a.map((x,i)=>({...x,key:x.rub+'|'+x.title}));
 }
+let openGroups=new Set();
 function renderSearches(){
  const box=$('searches');
- if(!searchCards.length){box.innerHTML='<div class="empty">Choisis un cadre, confirme-le, saisis au moins un identifiant, puis génère les recherches.</div>';$('bar').style.width='0';$('progressText').textContent='';return}
+ if(!searchCards.length){box.innerHTML='<div class="empty">Choisis un cadre, confirme-le, saisis au moins un identifiant, puis lance l’analyse.</div>';$('bar').style.width='0';$('progressText').textContent='';return}
  const groups={};searchCards.forEach(c=>(groups[c.rub]=groups[c.rub]||[]).push(c));
- box.innerHTML=Object.entries(groups).map(([r,l])=>`<div class="group"><h3>${esc(r)}</h3><div class="searchlist">${l.map(c=>`<div class="searchcard${done.has(c.key)?' done':''}"><b>${esc(c.title)}</b><p>${esc(c.desc)}</p><div class="row"><a href="${esc(c.url)}" target="_blank" rel="noopener noreferrer">Ouvrir</a><label><input type="checkbox" data-key="${esc(c.key)}" ${done.has(c.key)?'checked':''}>Consulté</label></div></div>`).join('')}</div></div>`).join('');
+ box.innerHTML='<div class="actions"><button class="small" id="openBatch">Ouvrir les 5 prochaines recherches non consultées</button></div>'+Object.entries(groups).map(([r,l])=>`<details class="group" data-g="${esc(r)}"${openGroups.has(r)?' open':''}><summary>${esc(r)} <span class="n">(${l.filter(c=>done.has(c.key)).length}/${l.length} consultées)</span></summary><div class="searchlist">${l.map(c=>`<div class="searchcard${done.has(c.key)?' done':''}"><b>${esc(c.title)}</b><p>${esc(c.desc)}</p><div class="row"><a href="${esc(c.url)}" target="_blank" rel="noopener noreferrer">Ouvrir</a><label><input type="checkbox" data-key="${esc(c.key)}" ${done.has(c.key)?'checked':''}>Consulté</label></div></div>`).join('')}</div></details>`).join('');
  const n=searchCards.filter(c=>done.has(c.key)).length;
  $('bar').style.width=Math.round(100*n/searchCards.length)+'%';
  $('progressText').textContent=`${n} sur ${searchCards.length} recherches consultées`;
 }
-function gate(){const ok=$('purpose').value&&$('consent').checked;$('generate').disabled=!ok;$('lookup').disabled=!ok}
+function gate(){const ok=$('purpose').value&&$('consent').checked;$('generate').disabled=!ok;$('lookup').disabled=!ok;$('autoRun').disabled=!ok}
 
 /* ---------- Registres ouverts ---------- */
 async function getJson(url,ms=9000){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(url,{signal:c.signal});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json()}finally{clearTimeout(t)}}
 const plain=s=>{const t=document.createElement('textarea');t.innerHTML=String(s).replace(/<[^>]+>/g,'');return t.value};
-async function lookup(){
+function addHit(h,auto){
+ if(entries.some(e=>e.source&&normUrl(e.source)===normUrl(h.url)))return false;
+ entries.push({id:nextId++,rubrique:h.rubrique,statut:STAT[2],fiabilite:h.fiabilite,fait:'',description:h.description,source:h.url,pubdate:'',eventdate:'',notes:h.notes,homonyme:true,contradiction:false,auto:!!auto});return true}
+async function collect(){
  const first=clean(val('first')),last=clean(val('last'));
- if(!first||!last){$('found').innerHTML='<div class="empty">Renseigne le prénom et le nom pour interroger les registres.</div>';return}
- const full=first+' '+last;hits=[];const status=[];
- $('lookup').disabled=true;$('found').innerHTML='<div class="status-line">Interrogation en cours…</div>';
+ const full=first+' '+last;hits=[];
  const note='Correspondance sur le nom seul : l’identité reste à vérifier.';
  const tasks=[
- ['Registre national des entreprises',async()=>{
+ ['Registre des entreprises',async()=>{
   const j=await getJson('https://recherche-entreprises.api.gouv.fr/search?per_page=10&nom_personne='+encodeURIComponent(last)+'&prenom_personne='+encodeURIComponent(first));
   (j.results||[]).slice(0,10).forEach(r=>{
    const siren=String(r.siren||'').replace(/\D/g,'');if(!siren)return;
@@ -282,13 +289,48 @@ async function lookup(){
  ['Wikidata',async()=>{
   const j=await getJson('https://www.wikidata.org/w/api.php?action=wbsearchentities&format=json&origin=*&language=fr&uselang=fr&limit=5&search='+encodeURIComponent(full));
   const l=(j.search||[]).filter(r=>/^Q\d+$/.test(r.id||''));
-  l.forEach(r=>hits.push({rubrique:RUB[0],fiabilite:FIAB[2],title:'Wikidata : '+(r.label||r.id),description:`Entité Wikidata ${r.id} : ${r.label||''}${r.description?' — '+r.description:''}.`,url:'https://www.wikidata.org/wiki/'+r.id,notes:note}));return l.length}]
+  l.forEach(r=>hits.push({rubrique:RUB[0],fiabilite:FIAB[2],title:'Wikidata : '+(r.label||r.id),description:`Entité Wikidata ${r.id} : ${r.label||''}${r.description?' — '+r.description:''}.`,url:'https://www.wikidata.org/wiki/'+r.id,notes:note}));return l.length}],
+ ['GitHub',async()=>{
+  const j=await getJson('https://api.github.com/search/users?per_page=5&q='+encodeURIComponent('"'+full+'" in:fullname'));
+  const l=(j.items||[]).filter(r=>/^[\w-]+$/.test(r.login||''));
+  l.forEach(r=>hits.push({rubrique:RUB[1],fiabilite:FIAB[2],title:'GitHub : '+r.login,description:`Profil public GitHub « ${r.login} » dont le nom complet ressemble à « ${full} ».`,url:'https://github.com/'+r.login,notes:note}));return l.length}],
+ ['OpenAlex',async()=>{
+  const j=await getJson('https://api.openalex.org/authors?per-page=5&search='+encodeURIComponent(full));
+  const l=(j.results||[]).filter(r=>/^https:\/\/openalex\.org\/A\d+$/.test(r.id||''));
+  l.forEach(r=>{const i0=r.last_known_institutions&&r.last_known_institutions[0];const inst=i0&&i0.display_name?i0.display_name:'';
+   hits.push({rubrique:RUB[1],fiabilite:FIAB[2],title:'OpenAlex : '+r.display_name,description:`Auteur « ${r.display_name} »${inst?', dernière institution connue : '+inst:''}, ${r.works_count||0} publications référencées.`,url:r.id,notes:note})});return l.length}]
  ];
- for(const [name,fn] of tasks){try{const n=await fn();status.push(`${name} : ${n} résultat${n>1?'s':''}`)}catch(e){status.push(`${name} : indisponible (${e.name==='AbortError'?'délai dépassé':'erreur réseau ou service'})`)}}
- renderFound(status);gate();
+ return await Promise.all(tasks.map(async([name,fn])=>{try{const n=await fn();return `${name} : ${n} résultat${n>1?'s':''}`}catch(e){return `${name} : indisponible (${e.name==='AbortError'?'délai dépassé':'erreur réseau ou service'})`}}));
+}
+async function lookup(){
+ if(!clean(val('first'))||!clean(val('last'))){$('found').innerHTML='<div class="empty">Renseigne le prénom et le nom pour interroger les registres.</div>';return}
+ $('lookup').disabled=true;$('found').innerHTML='<div class="status-line">Interrogation en cours…</div>';
+ renderFound(await collect());gate();
 }
 function renderFound(status){
- $('found').innerHTML=status.map(s=>`<div class="status-line">${esc(s)}</div>`).join('')+(hits.length?hits.map((h,i)=>`<div class="hit"><div><p><b>${esc(h.title)}</b></p><p>${esc(h.description)}</p><a href="${esc(h.url)}" target="_blank" rel="noopener noreferrer">Voir la source</a></div><button class="small" data-hit="${i}">Ajouter au rapport</button></div>`).join(''):'<div class="empty">Aucune correspondance publique trouvée dans ces trois sources. Cela ne prouve rien : la personne peut simplement ne pas y figurer.</div>');
+ $('found').innerHTML=status.map(s=>`<div class="status-line">${esc(s)}</div>`).join('')+(hits.length?`<details><summary>Détail des correspondances <span class="n">(${hits.length})</span></summary>${hits.map((h,i)=>{const dn=entries.some(e=>e.source&&normUrl(e.source)===normUrl(h.url));return `<div class="hit"><div><p><b>${esc(h.title)}</b></p><p>${esc(h.description)}</p><a href="${esc(h.url)}" target="_blank" rel="noopener noreferrer">Voir la source</a></div><button class="small" data-hit="${i}"${dn?' disabled':''}>${dn?'Déjà ajouté':'Ajouter au rapport'}</button></div>`}).join('')}</details>`:'<div class="empty">Aucune correspondance publique trouvée dans ces sources. Cela ne prouve rien : la personne peut simplement ne pas y figurer.</div>');
+}
+async function autoRun(){
+ const first=clean(val('first')),last=clean(val('last')),em=val('email'),m=$('idmsg');m.textContent='';
+ if(!first&&!last&&!em&&!val('phone')){m.textContent='Saisis au moins un identifiant.';return}
+ if(em&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){m.textContent='Adresse e-mail invalide.';return}
+ const steps=[];const show=()=>{$('pipe').innerHTML=steps.map(x=>`<li class="${x.c}">${esc(x.t)}</li>`).join('')};
+ const step=(t,c='')=>{steps.push({t,c});show();return steps.length-1};
+ $('autoRun').disabled=true;$('generate').disabled=true;$('lookup').disabled=true;
+ done=new Set();buildSearches();renderSearches();
+ step(`✔ ${searchCards.length} recherches préparées (étape 2)`,'ok');
+ let added=0;
+ if(first&&last){
+  const i=step('… Interrogation des registres ouverts');
+  const status=await collect();
+  hits.forEach(h=>{if(addHit(h,true))added++});
+  steps[i]={t:'✔ Registres interrogés : '+status.join(' ; '),c:status.some(x=>/indisponible/.test(x))?'err':'ok'};
+  renderFound(status);show();
+ }else step('Registres non interrogés : prénom et nom requis','err');
+ render();
+ const w=analyze().filter(x=>x.l==='warn').length;
+ step(`✔ ${added} résultat${added>1?'s':''} ajouté${added>1?'s':''} automatiquement au rapport, ${w} alerte${w>1?'s':''} de fiabilité`,'ok');
+ gate();$('reportPanel').scrollIntoView({behavior:'smooth'});
 }
 
 /* ---------- Formulaire ---------- */
@@ -301,7 +343,7 @@ function saveEntry(){
  if(source){if(!validUrl(source)){m.textContent='URL invalide : utilise une adresse http ou https.';return}
   const dup=entries.find(e=>e.id!==editingId&&e.source&&normUrl(e.source)===normUrl(source));
   if(dup&&!confirm('Cette source figure déjà dans le rapport. L’ajouter quand même ?'))return}
- const data={rubrique:val('rubrique'),statut:val('statut'),fiabilite:val('fiabilite'),fait:val('fait'),description,source,pubdate:val('pubdate'),eventdate:val('eventdate'),notes:val('notes'),homonyme:$('homonyme').checked,contradiction:$('contradiction').checked};
+ const data={rubrique:val('rubrique'),statut:val('statut'),fiabilite:val('fiabilite'),fait:val('fait'),description,source,pubdate:val('pubdate'),eventdate:val('eventdate'),notes:val('notes'),homonyme:$('homonyme').checked,contradiction:$('contradiction').checked,auto:false};
  if(editingId){const i=entries.findIndex(e=>e.id===editingId);if(i>-1)entries[i]={...entries[i],...data}}else entries.push({id:nextId++,...data});
  resetForm();render();
 }
@@ -341,16 +383,19 @@ function analyze(){
 /* ---------- Rendu du rapport ---------- */
 function entryHtml(e,editable){
  return `<div class="entry"><p><span class="badge ${SCLASS[e.statut]}">${SMARK[e.statut]||''}${esc(e.statut)}</span>${esc(e.description)}</p>
- <div class="meta"><span>${esc(e.fiabilite)}</span>${e.fait?`<span>Fait : ${esc(e.fait)}</span>`:''}${e.pubdate?`<span>Publié le ${esc(e.pubdate)}</span>`:''}${e.eventdate?`<span>Événement : ${esc(e.eventdate)}</span>`:''}${e.homonyme?'<span class="flag">Homonyme possible</span>':''}${e.contradiction?'<span class="flag">Contradiction signalée</span>':''}</div>
+ <div class="meta"><span>${esc(e.fiabilite)}</span>${e.fait?`<span>Fait : ${esc(e.fait)}</span>`:''}${e.pubdate?`<span>Publié le ${esc(e.pubdate)}</span>`:''}${e.eventdate?`<span>Événement : ${esc(e.eventdate)}</span>`:''}${e.homonyme?'<span class="flag">Homonyme possible</span>':''}${e.contradiction?'<span class="flag">Contradiction signalée</span>':''}${e.auto?'<span class="auto">Ajout automatique</span>':''}</div>
  ${e.notes?`<div class="meta">Limites : ${esc(e.notes)}</div>`:''}
  <div class="meta">${e.source?`<a href="${esc(e.source)}" target="_blank" rel="noopener noreferrer">Source</a><a href="https://web.archive.org/web/*/${esc(e.source)}" target="_blank" rel="noopener noreferrer">Archives</a>`:'<span>Aucune URL</span>'}${editable?`<button class="small noprint" data-edit="${e.id}">Modifier</button><button class="small noprint" data-del="${e.id}" aria-label="Supprimer ce résultat">Supprimer</button>`:''}</div></div>`}
 function reportBody(editable){
- if(!entries.length)return '<div class="empty">Aucun résultat pour le moment. Ajoute des sources à l’étape 3 ou 4.</div>';
- let h='';
- RUB.forEach(r=>{const l=entries.filter(e=>e.rubrique===r);if(l.length)h+=`<h3>${esc(r)}</h3>`+l.map(e=>entryHtml(e,editable)).join('')});
+ if(!entries.length)return '<div class="empty">Aucun résultat pour le moment. Lance l’analyse automatique ou ajoute des sources à l’étape 4.</div>';
+ const op=editable?'':' open';
+ const an=analyze(),warns=an.filter(x=>x.l==='warn'),autoN=entries.filter(e=>e.auto).length;
+ const c=k=>entries.filter(e=>e.statut===k).length;
+ let h=`<div class="synth"><p><b>Synthèse</b> : ${entries.length} résultat${entries.length>1?'s':''} — ${c(STAT[0])} confirmé${c(STAT[0])>1?'s':''}, ${c(STAT[1])} probable${c(STAT[1])>1?'s':''}, ${c(STAT[2])} à vérifier.${autoN?` ${autoN} ajouté${autoN>1?'s':''} automatiquement, à vérifier avant tout usage.`:''}</p>${warns.slice(0,3).map(x=>`<div class="issue warn">${esc(x.t)}</div>`).join('')}${editable?'<p>Ouvre chaque rubrique ci-dessous pour consulter le détail.</p>':''}</div>`;
+ RUB.forEach(r=>{const l=entries.filter(e=>e.rubrique===r);if(l.length)h+=`<details${op}><summary>${esc(r)} <span class="n">(${l.length})</span></summary>`+l.map(e=>entryHtml(e,editable)).join('')+'</details>'});
  const tl=entries.filter(e=>e.eventdate).sort((a,b)=>a.eventdate.localeCompare(b.eventdate));
- h+='<h3>Chronologie</h3>'+(tl.length?`<p>Classée par date d’événement, et non par date de publication.</p><div class="timeline">${tl.map(e=>`<div class="entry"><p><b>${esc(e.eventdate)}</b> · ${esc(e.rubrique)}</p>${entryHtml(e,false).replace('<div class="entry">','<div>')}</div>`).join('')}</div>`:'<div class="empty">Aucun événement daté.</div>');
- h+='<h3>Fiabilité</h3>'+analyze().map(x=>`<div class="issue ${x.l}">${esc(x.t)}</div>`).join('');
+ h+=`<details${op}><summary>Chronologie <span class="n">(${tl.length})</span></summary>`+(tl.length?`<p>Classée par date d’événement, et non par date de publication.</p><div class="timeline">${tl.map(e=>`<div class="entry"><p><b>${esc(e.eventdate)}</b> · ${esc(e.rubrique)}</p>${entryHtml(e,false).replace('<div class="entry">','<div>')}</div>`).join('')}</div>`:'<div class="empty">Aucun événement daté.</div>')+'</details>';
+ h+=`<details${op}><summary>Fiabilité <span class="n">(${an.length})</span></summary>`+an.map(x=>`<div class="issue ${x.l}">${esc(x.t)}</div>`).join('')+'</details>';
  return h}
 function render(){
  $('count').textContent=entries.length;
@@ -376,7 +421,7 @@ function sanitize(arr){
   let rubrique=RUB.includes(e.rubrique)?e.rubrique:(oldRub[e.category]||RUB[5]);
   const source=validUrl(e.source)?s(e.source,2000):'';
   let fiabilite=FIAB.includes(e.fiabilite)?e.fiabilite:(e.category==='Source officielle'?FIAB[0]:guessFiab(source));
-  return {id:i+1,rubrique,statut,fiabilite,fait:s(e.fait,200),description:s(e.description),source,pubdate:d(e.pubdate),eventdate:d(e.eventdate),notes:s(e.notes,500),homonyme:!!e.homonyme,contradiction:!!e.contradiction}}).filter(e=>e.description)}
+  return {id:i+1,rubrique,statut,fiabilite,fait:s(e.fait,200),description:s(e.description),source,pubdate:d(e.pubdate),eventdate:d(e.eventdate),notes:s(e.notes,500),homonyme:!!e.homonyme,contradiction:!!e.contradiction,auto:!!e.auto}}).filter(e=>e.description)}
 function subject(){const mask=$('maskExport').checked;const em=val('email'),ph=val('phone');
  return {firstName:val('first'),lastName:val('last'),email:mask?maskEmail(em):em,phone:mask?maskPhone(ph):ph,context:val('context')}}
 function download(name,content,type){const b=new Blob([content],{type}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
@@ -386,7 +431,7 @@ function exportCsv(){
  download('rapport-osint.csv','\ufeff'+rows.map(r=>r.map(f).join(';')).join('\r\n'),'text/csv;charset=utf-8')}
 function exportHtml(){
  const sj=subject();const name=[sj.firstName,sj.lastName].filter(Boolean).join(' ')||'Sujet non renseigné';
- const css='body{font:16px/1.6 system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0 20px;color:#172033}h1{font-size:1.8rem}h3{margin-top:28px;border-bottom:1px solid #ccc;padding-bottom:4px}.entry{border:1px solid #ccc;border-radius:8px;padding:10px 14px;margin:10px 0}.entry p{margin:0 0 6px;color:#172033}.meta{font-size:.85rem;color:#444;display:flex;gap:6px 14px;flex-wrap:wrap;margin:3px 0}.badge{border:1px solid;border-radius:6px;padding:1px 7px;font-size:.8rem;font-weight:700;margin-right:6px}.badge.ok{color:#116b45}.badge.mid{color:#8a5a00}.badge.low{color:#a02222}.flag{color:#8a5a00}.issue{padding:8px 12px;border-left:3px solid #888;background:#f3f3f3;margin:6px 0}.issue.warn{border-color:#a02222}.timeline{border-left:2px solid #bbb;padding-left:14px}a{color:#0b3d91;overflow-wrap:anywhere}button{display:none}';
+ const css='body{font:16px/1.6 system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0 20px;color:#172033}h1{font-size:1.8rem}h3{margin-top:28px;border-bottom:1px solid #ccc;padding-bottom:4px}.entry{border:1px solid #ccc;border-radius:8px;padding:10px 14px;margin:10px 0}.entry p{margin:0 0 6px;color:#172033}.meta{font-size:.85rem;color:#444;display:flex;gap:6px 14px;flex-wrap:wrap;margin:3px 0}.badge{border:1px solid;border-radius:6px;padding:1px 7px;font-size:.8rem;font-weight:700;margin-right:6px}.badge.ok{color:#116b45}.badge.mid{color:#8a5a00}.badge.low{color:#a02222}.flag{color:#8a5a00}.issue{padding:8px 12px;border-left:3px solid #888;background:#f3f3f3;margin:6px 0}.issue.warn{border-color:#a02222}.timeline{border-left:2px solid #bbb;padding-left:14px}summary{font-size:1.1rem;font-weight:700;margin-top:24px;border-bottom:1px solid #ccc;padding-bottom:4px}.auto{color:#245;font-size:.8rem}.synth{border:1px solid #ccc;border-radius:8px;padding:6px 14px;background:#f7f7f7}a{color:#0b3d91;overflow-wrap:anywhere}button{display:none}';
  const head=`<h1>Rapport OSINT — ${esc(name)}</h1><p>Généré le ${esc(new Date().toLocaleString('fr-FR'))}. Cadre : ${esc(val('purpose')||'non renseigné')}.${sj.context?' Contexte : '+esc(sj.context)+'.':''}${sj.email?' E-mail : '+esc(sj.email)+'.':''}${sj.phone?' Téléphone : '+esc(sj.phone)+'.':''}</p><p>Méthode : résultats issus de sources publiques consignées par l’utilisateur. Chaque résultat est classé comme fait confirmé, correspondance probable ou hypothèse à vérifier. Exactitude non garantie ; ne pas utiliser pour prendre une décision défavorable sans vérification indépendante.</p>`;
  download('rapport-osint.html','<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rapport OSINT</title><style>'+css+'</style></head><body>'+head+reportBody(false)+'</body></html>','text/html;charset=utf-8')}
 
@@ -400,10 +445,13 @@ $('generate').addEventListener('click',()=>{
  done=new Set();buildSearches();renderSearches()});
 $('searches').addEventListener('change',ev=>{const k=ev.target.dataset&&ev.target.dataset.key;if(!k)return;ev.target.checked?done.add(k):done.delete(k);renderSearches()});
 $('lookup').addEventListener('click',lookup);
-$('found').addEventListener('click',ev=>{const b=ev.target.closest('[data-hit]');if(!b)return;const h=hits[Number(b.dataset.hit)];if(!h)return;
- if(entries.some(e=>e.source&&normUrl(e.source)===normUrl(h.url))){b.textContent='Déjà ajouté';b.disabled=true;return}
- entries.push({id:nextId++,rubrique:h.rubrique,statut:STAT[2],fiabilite:h.fiabilite,fait:'',description:h.description,source:h.url,pubdate:'',eventdate:'',notes:h.notes,homonyme:true,contradiction:false});
- b.textContent='Ajouté';b.disabled=true;render()});
+$('autoRun').addEventListener('click',autoRun);
+$('searches').addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.g){d.open?openGroups.add(d.dataset.g):openGroups.delete(d.dataset.g)}},true);
+$('searches').addEventListener('click',ev=>{if(!ev.target.closest('#openBatch'))return;
+ searchCards.filter(c=>!done.has(c.key)).slice(0,5).forEach(c=>{window.open(c.url,'_blank','noopener,noreferrer');done.add(c.key)});renderSearches()});
+$('rmAuto').addEventListener('click',()=>{const n=entries.filter(e=>e.auto).length;if(!n){return}if(confirm(`Retirer les ${n} résultat(s) ajouté(s) automatiquement ?`)){entries=entries.filter(e=>!e.auto);render();if(hits.length)renderFound([])}});
+window.addEventListener('beforeprint',()=>document.querySelectorAll('#report details').forEach(d=>d.open=true));
+$('found').addEventListener('click',ev=>{const b=ev.target.closest('[data-hit]');if(!b)return;const h=hits[Number(b.dataset.hit)];if(!h)return;addHit(h,false);b.textContent='Ajouté';b.disabled=true;render()});
 $('source').addEventListener('blur',()=>{const u=val('source');if(u&&validUrl(u)&&$('fiabilite').value===FIAB[3])$('fiabilite').value=guessFiab(u)});
 $('add').addEventListener('click',saveEntry);
 $('cancelEdit').addEventListener('click',resetForm);
@@ -414,7 +462,7 @@ $('report').addEventListener('click',ev=>{
 $('clear').addEventListener('click',()=>{
  if(!confirm('Effacer les identifiants, les recherches et le rapport ?'))return;
  ['first','last','email','phone','context'].forEach(i=>$(i).value='');entries=[];hits=[];searchCards=[];done=new Set();
- $('found').innerHTML='';renderSearches();resetForm();render();
+ $('found').innerHTML='';$('pipe').innerHTML='';renderSearches();resetForm();render();
  try{localStorage.removeItem('osint-draft')}catch{}});
 $('persist').addEventListener('change',()=>{if($('persist').checked)saveDraft();else try{localStorage.removeItem('osint-persist');localStorage.removeItem('osint-draft')}catch{}});
 $('csv').addEventListener('click',exportCsv);
