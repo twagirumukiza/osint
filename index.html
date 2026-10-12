@@ -2,123 +2,436 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Outil personnel pour organiser des recherches OSINT dans des sources publiques et produire un rapport traçable.">
-<title>OSINT Public — Recherche & rapport</title>
+<meta name="description" content="Outil gratuit pour organiser des recherches OSINT dans des sources publiques et produire un rapport sourcé, avec niveaux de confiance et contrôles de cohérence.">
+<title>OSINT Public — Recherche et rapport</title>
 <style>
-:root{color-scheme:dark;--bg:#0a1020;--panel:#121c31;--panel2:#17243d;--line:#2d3d5b;--text:#edf3ff;--muted:#aab8d2;--blue:#8ab4ff;--green:#8de0b8;--amber:#f7d18a}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#172743 0,#0a1020 60%);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-header,main,.foot{max-width:1180px;margin:auto;padding-left:18px;padding-right:18px}header{padding-top:30px;padding-bottom:20px}h1{font-size:clamp(2rem,5vw,3rem);letter-spacing:-.04em;line-height:1.1;margin:.3rem 0}h2{font-size:1.15rem;margin:0 0 10px}.eyebrow{font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);font-weight:800}p{color:var(--muted);margin:.4rem 0}.chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px}.chip{font-size:.77rem;border:1px solid var(--line);border-radius:999px;padding:4px 9px;color:var(--muted)}
-main{display:grid;grid-template-columns:1fr 1fr;gap:15px;padding-bottom:32px}.panel{background:#121c31ee;border:1px solid var(--line);border-radius:16px;padding:19px;min-width:0;box-shadow:0 12px 34px #0002}.wide{grid-column:1/-1}.grid2,.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}label{display:block;font-size:.86rem;font-weight:700;margin:10px 0 5px;color:#dce7fc}input,select,textarea{width:100%;background:#0b1427;border:1px solid #354969;border-radius:9px;padding:10px 11px;color:var(--text);font:inherit}input:focus,select:focus,textarea:focus{outline:2px solid #8ab4ff66;border-color:var(--blue)}button{background:#1c2c49;color:var(--text);border:1px solid #405779;padding:10px 13px;border-radius:9px;font:inherit;font-weight:700;cursor:pointer}button.primary{background:var(--blue);border-color:var(--blue);color:#0b1427}button:hover{filter:brightness(1.1)}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.notice{margin-top:13px;padding:10px 12px;border-left:3px solid var(--amber);border-radius:7px;background:#322a1b;color:#f8e5be;font-size:.84rem}.searchlist{display:grid;grid-template-columns:1fr 1fr;gap:9px}.searchcard{padding:12px;border:1px solid var(--line);border-radius:11px;background:#0b1427}.searchcard b{display:block;margin-bottom:4px}.searchcard p{font-size:.81rem;margin:0 0 8px}.searchcard a{color:#b8d1ff;font-weight:700;text-decoration:none}.searchcard a:hover{text-decoration:underline}.empty{padding:20px;text-align:center;border:1px dashed #354969;border-radius:10px;color:var(--muted)}.full{grid-column:1/-1}.stats{display:flex;gap:9px;flex-wrap:wrap;margin:10px 0 15px}.stat{border:1px solid var(--line);border-radius:10px;padding:9px 13px;min-width:100px}.stat b{font-size:1.3rem;display:block}.stat span{font-size:.77rem;color:var(--muted)}.tablewrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.85rem}th,td{border-bottom:1px solid var(--line);padding:9px 7px;text-align:left;vertical-align:top}th{font-size:.73rem;text-transform:uppercase;letter-spacing:.06em;color:#b8c9e7}td a{color:#b8d1ff;overflow-wrap:anywhere}.tag{background:#243754;padding:3px 6px;border-radius:5px;font-size:.75rem}.foot{font-size:.8rem;color:var(--muted);padding-bottom:28px}.small{font-size:.8rem}
-@media(max-width:800px){main{grid-template-columns:1fr}.wide{grid-column:auto}.grid2,.formgrid,.searchlist{grid-template-columns:1fr}.full{grid-column:auto}.panel{padding:15px}}
+:root{color-scheme:dark;--bg:#0a1020;--panel:#121c31;--panel2:#17243d;--field:#0b1427;--line:#2d3d5b;--text:#edf3ff;--muted:#aab8d2;--blue:#8ab4ff;--green:#8de0b8;--amber:#f7d18a;--red:#ff9d9d}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#172743 0,#0a1020 60%) fixed;color:var(--text);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header,main,.foot{max-width:1180px;margin:auto;padding-left:18px;padding-right:18px}
+header{padding-top:30px;padding-bottom:18px}
+h1{font-size:clamp(2rem,5vw,3rem);letter-spacing:-.04em;line-height:1.1;margin:0 0 .3rem}
+h2{font-size:1.2rem;margin:0 0 6px;letter-spacing:-.01em}
+h3{font-size:.98rem;margin:18px 0 8px;color:#dce7fc}
+p{color:var(--muted);margin:.35rem 0}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px}
+.chip{font-size:.78rem;border:1px solid var(--line);border-radius:999px;padding:4px 10px;color:var(--muted)}
+main{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding-bottom:32px}
+.panel{background:#121c31ee;border:1px solid var(--line);border-radius:14px;padding:20px;min-width:0}
+.wide{grid-column:1/-1}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.full{grid-column:1/-1}
+label{display:block;font-size:.86rem;font-weight:700;margin:10px 0 5px;color:#dce7fc}
+input,select,textarea{width:100%;background:var(--field);border:1px solid #354969;border-radius:9px;padding:10px 11px;color:var(--text);font:inherit}
+input[type=checkbox]{width:auto;margin-right:8px;accent-color:var(--blue)}
+.check{display:flex;align-items:flex-start;font-weight:500;font-size:.88rem;margin:10px 0 0;color:var(--text)}
+.check input{margin-top:4px;flex:none}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+button{background:#1c2c49;color:var(--text);border:1px solid #405779;padding:10px 14px;border-radius:9px;font:inherit;font-weight:700;cursor:pointer}
+button.primary{background:var(--blue);border-color:var(--blue);color:#0b1427}
+button.small{padding:5px 9px;font-size:.8rem}
+button:hover:not(:disabled){filter:brightness(1.12)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.notice{margin-top:13px;padding:10px 12px;border-left:3px solid var(--amber);border-radius:7px;background:#322a1b;color:#f8e5be;font-size:.84rem}
+.notice.info{border-color:var(--blue);background:#14223d;color:#cfe0ff}
+.msg{min-height:1.2em;margin-top:8px;font-size:.85rem;color:var(--red)}
+.group{margin-bottom:6px}
+.searchlist{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.searchcard{padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--field)}
+.searchcard.done{opacity:.6}
+.searchcard b{display:block;margin-bottom:2px}
+.searchcard p{font-size:.8rem;margin:0 0 7px}
+.searchcard .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.searchcard a,td a,.entry a{color:#b8d1ff;font-weight:700;text-decoration:none;overflow-wrap:anywhere}
+.searchcard a:hover,.entry a:hover{text-decoration:underline}
+.searchcard label{margin:0;font-size:.78rem;font-weight:500;color:var(--muted);display:flex;align-items:center}
+.empty{padding:20px;text-align:center;border:1px dashed #354969;border-radius:10px;color:var(--muted)}
+.progress{height:6px;background:#1c2c49;border-radius:6px;overflow:hidden;margin:6px 0 4px}
+.progress i{display:block;height:100%;background:var(--green);width:0;transition:width .25s}
+.stats{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0 6px}
+.stat{border:1px solid var(--line);border-radius:10px;padding:8px 13px;min-width:108px}
+.stat b{font-size:1.3rem;display:block}.stat span{font-size:.77rem;color:var(--muted)}
+.entry{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:8px 0;background:var(--field)}
+.entry p{color:var(--text);margin:0 0 6px}
+.meta{font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center}
+.badge{display:inline-block;border:1px solid;border-radius:6px;padding:2px 8px;font-size:.78rem;font-weight:700;margin-right:6px}
+.badge.ok{color:var(--green);border-color:#2f6b52}.badge.mid{color:var(--amber);border-color:#7a6230}.badge.low{color:var(--red);border-color:#7a3a3a}
+.flag{font-size:.76rem;color:var(--amber)}
+.issue{padding:9px 12px;border-radius:8px;margin:7px 0;font-size:.88rem;border-left:3px solid}
+.issue.warn{background:#322323;border-color:var(--red);color:#ffd6d6}
+.issue.info{background:#14223d;border-color:var(--blue);color:#cfe0ff}
+.issue.ok{background:#14301f;border-color:var(--green);color:#cdf5df}
+.timeline{border-left:2px solid var(--line);margin:8px 0 8px 6px;padding-left:16px}
+.timeline .entry{position:relative}
+.timeline .entry:before{content:"";position:absolute;left:-23px;top:16px;width:10px;height:10px;border-radius:50%;background:var(--blue)}
+.foot{font-size:.8rem;color:var(--muted);padding-bottom:28px}
+.status-line{font-size:.82rem;color:var(--muted);margin:4px 0}
+.hit{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:7px 0;background:var(--field)}
+.hit p{margin:0;color:var(--text);font-size:.88rem}
+@media(max-width:800px){main{grid-template-columns:1fr}.wide{grid-column:auto}.grid2,.searchlist{grid-template-columns:1fr}.full{grid-column:auto}.panel{padding:15px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{
+ :root{color-scheme:light}
+ body{background:#fff;color:#111}.noprint{display:none!important}
+ main{display:block}.panel{border:0;background:none;padding:0;color:#111}
+ p,.meta,.stat span{color:#333}.entry,.stat{background:#fff;border-color:#bbb}.entry p{color:#111}
+ .badge.ok{color:#116b45}.badge.mid{color:#8a5a00}.badge.low{color:#a02222}
+ .issue{background:#f4f4f4!important;color:#111!important}a{color:#0b3d91!important}
+}
 </style>
 </head>
 <body>
-<header>
-<div class="eyebrow">OSINT · sources publiques · prototype local</div>
+<header class="noprint">
 <h1>OSINT Public</h1>
-<p>Prépare tes recherches, consigne les sources et construis un rapport vérifiable depuis une seule interface.</p>
-<div class="chips"><span class="chip">Gratuit</span><span class="chip">Sans compte</span><span class="chip">Pas de serveur</span><span class="chip">Export HTML / CSV / JSON</span></div>
+<p>Prépare tes recherches, interroge les registres officiels ouverts, consigne chaque source et obtiens un rapport avec contrôles de cohérence.</p>
+<div class="chips"><span class="chip">Gratuit</span><span class="chip">Sans compte</span><span class="chip">Sans serveur</span><span class="chip">Export HTML, CSV, JSON</span><span class="chip">Import de rapport</span></div>
 </header>
+
 <main>
-<section class="panel">
-<h2>1. Identifiants de recherche</h2>
-<p>Les champs sont utilisés pour préparer des liens de recherche. Ils ne sont pas envoyés à un serveur par cette application.</p>
+<section class="panel noprint">
+<h2>1. Cadre et identifiants</h2>
+<label for="purpose">Cadre de la recherche</label>
+<select id="purpose">
+<option value="">Choisir un cadre…</option>
+<option>Recherche sur mes propres informations</option>
+<option>Recherche avec le consentement de la personne</option>
+<option>Vérification professionnelle (partenaire, prestataire, candidat) sur sources publiques</option>
+<option>Recherche journalistique d’intérêt public</option>
+</select>
+<label class="check" for="consent"><input type="checkbox" id="consent">Je confirme avoir un motif légitime, proportionné à ce cadre, et je respecterai le RGPD ainsi que les conditions de chaque service.</label>
 <div class="grid2">
 <div><label for="first">Prénom</label><input id="first" autocomplete="off" placeholder="Prénom"></div>
 <div><label for="last">Nom</label><input id="last" autocomplete="off" placeholder="Nom"></div>
 <div><label for="email">Adresse e-mail</label><input id="email" type="email" autocomplete="off" placeholder="nom@exemple.fr"></div>
-<div><label for="phone">Téléphone</label><input id="phone" autocomplete="off" placeholder="+33…"></div>
+<div><label for="phone">Téléphone</label><input id="phone" autocomplete="off" placeholder="+33 6 12 34 56 78"></div>
+<div class="full"><label for="context">Contexte pour limiter les homonymes (facultatif)</label><input id="context" autocomplete="off" placeholder="Ville, employeur, école, métier…"></div>
 </div>
-<label for="purpose">Cadre de recherche</label>
-<select id="purpose"><option>Recherche professionnelle / sources publiques</option><option>Recherche sur mes propres informations</option><option>Recherche avec le consentement de la personne</option><option>Recherche journalistique d’intérêt public</option></select>
-<div class="notice">Utilise l’application pour des recherches légitimes. Elle ne doit pas servir à accéder à des comptes privés, retrouver une adresse personnelle ou suivre les déplacements privés d’une personne. Les voyages ne sont consignés que s’ils sont explicitement documentés dans des publications publiques.</div>
-<div class="actions"><button class="primary" id="generate">Générer les recherches</button><button id="clear">Effacer les champs</button></div>
+<div class="notice">L’application ne sert pas à accéder à des comptes privés, retrouver une adresse personnelle ou suivre les déplacements privés d’une personne. Les voyages ne sont consignés que s’ils sont explicitement publiés par des sources publiques.</div>
+<div class="actions"><button class="primary" id="generate" disabled>Générer les recherches</button><button id="clear">Tout effacer</button></div>
+<div class="msg" id="idmsg" role="alert"></div>
 </section>
-<section class="panel">
+
+<section class="panel noprint">
 <h2>2. Recherches préparées</h2>
-<p>Les liens ouvrent des services externes. Vérifie chaque résultat et les conditions du service utilisé.</p>
-<div id="searches" class="searchlist"><div class="empty">Saisis au moins un identifiant, puis clique sur « Générer les recherches ».</div></div>
+<p>Les liens ouvrent des services externes dans un nouvel onglet. Coche chaque recherche une fois consultée.</p>
+<div class="progress" aria-hidden="true"><i id="bar"></i></div>
+<div class="status-line" id="progressText" aria-live="polite"></div>
+<div id="searches"><div class="empty">Choisis un cadre, confirme-le, saisis au moins un identifiant, puis génère les recherches.</div></div>
 </section>
-<section class="panel wide">
-<h2>3. Ajouter une source au rapport</h2>
-<p>Consigne un résumé factuel, le lien original et les limites connues. Évite de recopier les données personnelles non nécessaires.</p>
-<div class="formgrid">
-<div><label for="category">Catégorie</label><select id="category"><option>Identité / homonymie</option><option>Profil professionnel</option><option>Publication publique</option><option>Photo / vidéo publique</option><option>Voyage explicitement publié</option><option>Source officielle</option><option>Autre</option></select></div>
-<div><label for="confidence">Niveau de confiance</label><select id="confidence"><option>À vérifier</option><option>Faible</option><option>Moyen</option><option>Élevé</option><option>Confirmé par deux sources indépendantes</option></select></div>
-<div class="full"><label for="description">Résumé factuel</label><textarea id="description" rows="2" placeholder="Que montre réellement la source ?"></textarea></div>
+
+<section class="panel wide noprint">
+<h2>3. Registres publics ouverts (automatique)</h2>
+<p>Interroge trois sources ouvertes : le Registre national des entreprises (dirigeants publiés), Wikipédia et Wikidata. Seuls le prénom et le nom sont envoyés à ces services, après ton clic. L’e-mail et le téléphone ne sont jamais transmis. Les adresses ne sont pas affichées.</p>
+<div class="actions"><button class="primary" id="lookup" disabled>Interroger les registres</button></div>
+<div id="found" aria-live="polite"></div>
+</section>
+
+<section class="panel wide noprint">
+<h2>4. Ajouter ou modifier une source</h2>
+<p>Décris ce que la source affirme réellement, avec son lien. Évite de recopier des données personnelles inutiles.</p>
+<div class="grid2">
+<div><label for="rubrique">Rubrique</label><select id="rubrique"></select></div>
+<div><label for="statut">Statut du résultat</label><select id="statut"></select></div>
+<div class="full"><label for="description">Résumé factuel</label><textarea id="description" rows="2" placeholder="Que montre la source ?"></textarea></div>
 <div class="full"><label for="source">URL de la source publique</label><input id="source" type="url" placeholder="https://…"></div>
-<div><label for="pubdate">Date de publication (si connue)</label><input id="pubdate" type="date"></div>
-<div><label for="notes">Limites / éléments à vérifier</label><input id="notes" placeholder="Ex. lieu mentionné, présence non confirmée"></div>
+<div><label for="fiabilite">Type de source</label><select id="fiabilite"></select></div>
+<div><label for="fait">Référence du fait (pour recouper)</label><input id="fait" placeholder="Ex. Poste actuel chez X"></div>
+<div><label for="pubdate">Date de publication</label><input id="pubdate" type="date"></div>
+<div><label for="eventdate">Date de l’événement</label><input id="eventdate" type="date"></div>
+<div class="full"><label for="notes">Limites et éléments à vérifier</label><input id="notes" placeholder="Ex. photo sans date, lieu non confirmé"></div>
 </div>
-<div class="actions"><button class="primary" id="add">Ajouter au rapport</button><button id="csv">Exporter CSV</button><button id="json">Exporter JSON</button><button id="html">Télécharger le rapport HTML</button><button id="print">Imprimer / PDF</button></div>
-<div class="notice">Une date de publication n’est pas nécessairement la date de prise de vue ou du déplacement. Distingue toujours ce que la source affirme de ce qui a été vérifié.</div>
+<label class="check" for="homonyme"><input type="checkbox" id="homonyme">Homonyme possible : l’identité n’est pas établie</label>
+<label class="check" for="contradiction"><input type="checkbox" id="contradiction">Contredit une autre source du rapport</label>
+<div class="actions"><button class="primary" id="add">Ajouter au rapport</button><button id="cancelEdit" hidden>Annuler la modification</button></div>
+<div class="msg" id="formmsg" role="alert"></div>
+<div class="notice info">Fait confirmé : une source officielle, ou deux domaines indépendants, pour la même référence de fait. Correspondance probable : concordance forte mais non recoupée. Hypothèse à vérifier : tout le reste. La date de publication n’est pas la date de prise de vue ou du déplacement.</div>
 </section>
-<section class="panel wide">
-<h2>4. Rapport de recherche</h2>
-<div class="stats"><div class="stat"><b id="count">0</b><span>Résultats</span></div><div class="stat"><b id="sourceCount">0</b><span>Sources distinctes</span></div><div class="stat"><b id="checkCount">0</b><span>À vérifier</span></div></div>
-<div id="results"><div class="empty">Aucun résultat ajouté pour le moment.</div></div>
+
+<section class="panel wide" id="reportPanel">
+<h2>5. Rapport</h2>
+<div class="stats" aria-live="polite">
+<div class="stat"><b id="count">0</b><span>Résultats</span></div>
+<div class="stat"><b id="cOk">0</b><span>Faits confirmés</span></div>
+<div class="stat"><b id="cMid">0</b><span>Probables</span></div>
+<div class="stat"><b id="cLow">0</b><span>Hypothèses</span></div>
+<div class="stat"><b id="sourceCount">0</b><span>Domaines distincts</span></div>
+</div>
+<div class="actions noprint">
+<button id="csv">Exporter CSV</button><button id="json">Exporter JSON</button><button id="html" class="primary">Télécharger le rapport HTML</button><button id="print">Imprimer / PDF</button>
+<button id="importBtn">Importer un rapport JSON</button><input type="file" id="importFile" accept="application/json,.json" hidden>
+</div>
+<label class="check noprint" for="maskExport"><input type="checkbox" id="maskExport" checked>Masquer l’e-mail et le téléphone dans les exports</label>
+<label class="check noprint" for="persist"><input type="checkbox" id="persist">Garder le brouillon de rapport dans ce navigateur (désactivé par défaut ; les identifiants ne sont jamais enregistrés)</label>
+<div id="report"></div>
 </section>
 </main>
-<div class="foot">Prototype statique. Il prépare des recherches et organise les résultats saisis manuellement ; il ne collecte pas automatiquement les pages. Une automatisation future devra passer par des API officielles ou des sources autorisées, avec quotas et clés protégées.</div>
+<div class="foot noprint">Les recherches web sont des liens préparés ; les pages ne sont pas collectées automatiquement. Seules les trois API ouvertes de l’étape 3 sont interrogées. Une automatisation plus large devra passer par des API officielles, avec quotas et clés protégées côté serveur.</div>
+
 <script>
-const $=id=>document.getElementById(id), val=id=>$(id).value.trim();
-let entries=[];
+const $=id=>document.getElementById(id);
+const val=id=>$(id).value.trim();
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const quoted=s=>'"'+s.replace(/"/g,' ')+'"';
-const card=(title,desc,url)=>({title,desc,url});
-function generate(){
- const first=val('first'),last=val('last'),name=[first,last].filter(Boolean).join(' '),email=val('email'),phone=val('phone');
- if(!name&&!email&&!phone){$('searches').innerHTML='<div class="empty">Saisis au moins un identifiant.</div>';return}
- const a=[];
- if(name){
-  a.push(card('Recherche Web exacte','Pages publiques correspondant au nom','https://www.google.com/search?q='+encodeURIComponent(quoted(name))));
-  a.push(card('Profils professionnels','Pages publiques professionnelles','https://www.google.com/search?q='+encodeURIComponent(quoted(name)+' (site:linkedin.com/in OR site:github.com)')));
-  a.push(card('Photos et vidéos publiques','Publications indexées et contenus publics','https://www.google.com/search?q='+encodeURIComponent(quoted(name)+' (photo OR vidéo OR interview)')));
-  a.push(card('Voyages explicitement publiés','Récits publics, sans déduire une localisation privée','https://www.google.com/search?q='+encodeURIComponent(quoted(name)+' (voyage OR séjour OR travel)')));
-  a.push(card('Recherche d’images','Résultats d’images indexés','https://www.google.com/search?tbm=isch&q='+encodeURIComponent(quoted(name))));
-  a.push(card('Bing — seconde recherche','Comparer les résultats d’un autre moteur','https://www.bing.com/search?q='+encodeURIComponent(quoted(name))));
-  a.push(card('Google Lens','Comparer une image que tu es autorisé à examiner','https://lens.google/'));
+const clean=s=>String(s).replace(/["“”<>]/g,' ').replace(/\s+/g,' ').trim();
+
+const RUB=['Identité','Présence numérique','E-mail et téléphone','Photos et vidéos','Voyages publiés','Autre'];
+const STAT=['Fait confirmé','Correspondance probable','Hypothèse à vérifier'];
+const FIAB=['Source officielle','Média ou institution reconnue','Profil auto-déclaré ou contenu collaboratif','Source anonyme ou inconnue'];
+const SCLASS={[STAT[0]]:'ok',[STAT[1]]:'mid',[STAT[2]]:'low'};
+const SMARK={[STAT[0]]:'✔ ',[STAT[1]]:'≈ ',[STAT[2]]:'? '};
+
+let entries=[],nextId=1,editingId=null,done=new Set(),searchCards=[],hits=[];
+
+/* ---------- URL et domaines ---------- */
+const host=u=>{try{return new URL(u).hostname.replace(/^www\./,'').toLowerCase()}catch{return ''}};
+const SLD=['gouv.fr','co.uk','gov.uk','org.uk','com.br','asso.fr','com.au'];
+function rootDomain(h){if(!h)return '';const p=h.split('.');if(p.length<=2)return h;const l2=p.slice(-2).join('.');return p.slice(-(SLD.includes(l2)?3:2)).join('.')}
+function normUrl(u){try{const x=new URL(u);const q=[...x.searchParams].filter(([k])=>!/^(utm_|fbclid|gclid)/i.test(k)).map(([k,v])=>k+'='+v).join('&');return x.hostname.replace(/^www\./,'').toLowerCase()+x.pathname.replace(/\/+$/,'')+(q?'?'+q:'')}catch{return u}}
+function guessFiab(u){const r=rootDomain(host(u));
+ if(/(^|\.)(gouv\.fr|europa\.eu|bodacc\.fr|inpi\.fr|infogreffe\.fr|insee\.fr)$/.test(r)||/(^|\.)gov$/.test(r))return FIAB[0];
+ if(['wikipedia.org','wikidata.org','linkedin.com','github.com','facebook.com','instagram.com','x.com','twitter.com','tiktok.com','youtube.com','medium.com','substack.com'].includes(r))return FIAB[2];
+ return FIAB[3]}
+const validUrl=u=>{try{return /^https?:$/.test(new URL(u).protocol)}catch{return false}};
+
+/* ---------- Masquage ---------- */
+const maskEmail=e=>e?e.replace(/^(.).*(@.*)$/,'$1***$2'):'';
+const maskPhone=p=>{const d=p.replace(/\D/g,'');return d.length>=4?'•'.repeat(d.length-2)+d.slice(-2):(p?'••':'')};
+
+/* ---------- Recherches préparées ---------- */
+const g=q=>'https://www.google.com/search?q='+encodeURIComponent(q);
+const ddg=q=>'https://duckduckgo.com/?q='+encodeURIComponent(q);
+const bing=q=>'https://www.bing.com/search?q='+encodeURIComponent(q);
+function phoneVariants(raw){
+ const p=clean(raw);let d=p.replace(/[^\d+]/g,'');let nat='';
+ if(/^(\+33|0033)\d{9}$/.test(d))nat='0'+d.replace(/^(\+33|0033)/,'');else if(/^0\d{9}$/.test(d))nat=d;
+ if(!nat)return [p];
+ const pairs=nat.match(/\d{2}/g);
+ return [...new Set([p,'+33'+nat.slice(1),nat,pairs.join(' '),pairs.join('.')])]}
+function buildSearches(){
+ const first=clean(val('first')),last=clean(val('last')),email=clean(val('email')),phone=val('phone'),ctx=clean(val('context'));
+ const full=[first,last].filter(Boolean).join(' ');
+ const nm=[];if(first&&last)nm.push(`"${first} ${last}"`,`"${last} ${first}"`);else if(full)nm.push(`"${full}"`);
+ const nameQ=nm.length>1?'('+nm.join(' OR ')+')':(nm[0]||'');
+ const c=q=>ctx?q+' '+ctx:q;
+ const a=[];const add=(rub,title,desc,url)=>a.push({rub,title,desc,url});
+ if(full){
+  add(RUB[0],'Google, nom exact','Pages publiques contenant le nom (deux ordres)',g(c(nameQ)));
+  add(RUB[0],'DuckDuckGo, nom exact','Second moteur pour comparer',ddg(c(nameQ)));
+  add(RUB[0],'Bing, nom exact','Troisième moteur pour comparer',bing(c(nameQ)));
+  add(RUB[0],'Wikipédia','Page ou mention encyclopédique','https://fr.wikipedia.org/w/index.php?search='+encodeURIComponent(full));
+  add(RUB[1],'Profils professionnels','LinkedIn et GitHub indexés',g(c(nameQ)+' (site:linkedin.com/in OR site:github.com)'));
+  add(RUB[1],'Publications scientifiques','Google Scholar, par auteur','https://scholar.google.com/scholar?q='+encodeURIComponent(`author:"${full}"`));
+  add(RUB[1],'HAL (archives ouvertes)','Dépôts de publications','https://hal.science/search/index?q='+encodeURIComponent(full));
+  add(RUB[1],'ORCID','Identifiant de chercheur public','https://orcid.org/orcid-search/search?searchQuery='+encodeURIComponent(full));
+  add(RUB[3],'Google Images','Images indexées pour ce nom','https://www.google.com/search?tbm=isch&q='+encodeURIComponent(c(nameQ)));
+  add(RUB[3],'Vidéos et interviews','Contenus vidéo publics',g(c(nameQ)+' (vidéo OR interview OR conférence)'));
+  add(RUB[3],'YouTube','Recherche directe sur la plateforme','https://www.youtube.com/results?search_query='+encodeURIComponent(c(full)));
+  add(RUB[4],'Récits de voyage publiés','Récits explicitement publiés par la personne ou un média',g(c(nameQ)+' (voyage OR séjour OR "carnet de voyage")'));
  }
  if(email){
-  a.push(card('Recherche de l’e-mail exact','Mentions publiques indexées','https://www.google.com/search?q='+encodeURIComponent(quoted(email))));
-  a.push(card('Have I Been Pwned','Vérifier l’exposition de ta propre adresse ou avec autorisation','https://haveibeenpwned.com/'));
-  a.push(card('Epieos','Vérifications liées à l’e-mail, selon l’offre','https://epieos.com/'));
+  add(RUB[2],'E-mail exact','Mentions publiques indexées',g(`"${email}"`));
+  add(RUB[2],'E-mail exact, DuckDuckGo','Comparer avec un autre moteur',ddg(`"${email}"`));
+  add(RUB[2],'Epieos','Vérifications liées à l’e-mail, selon l’offre ; ne retiens que ce qui est public et recoupé','https://epieos.com/');
+  add(RUB[2],'Have I Been Pwned','À utiliser pour ta propre adresse ou avec accord de la personne','https://haveibeenpwned.com/');
  }
  if(phone){
-  a.push(card('Recherche du téléphone exact','Mentions accessibles publiquement','https://www.google.com/search?q='+encodeURIComponent(quoted(phone))));
-  a.push(card('Recherche complémentaire','Comparer les résultats dans Bing','https://www.bing.com/search?q='+encodeURIComponent(quoted(phone))));
+  const v=phoneVariants(phone);const q=v.length>1?'('+v.map(x=>`"${x}"`).join(' OR ')+')':`"${v[0]}"`;
+  add(RUB[2],'Téléphone, formats courants',v.length>1?`Variantes : ${v.join(' · ')}`:'Mentions accessibles publiquement',g(q));
+  add(RUB[2],'Téléphone, DuckDuckGo','Comparer avec un autre moteur',ddg(q));
  }
- a.push(card('Annuaire des entreprises','Activités professionnelles publiées officiellement','https://annuaire-entreprises.data.gouv.fr/'));
- a.push(card('BODACC','Annonces officielles d’entreprises','https://www.bodacc.fr/'));
- a.push(card('Wayback Machine','Versions archivées de pages publiques','https://web.archive.org/'));
- $('searches').innerHTML=a.map(x=>`<div class="searchcard"><b>${esc(x.title)}</b><p>${esc(x.desc)}</p><a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">Ouvrir la recherche ↗</a></div>`).join('');
+ add(RUB[3],'Google Lens','Recherche inversée d’une image que tu es autorisé à examiner','https://lens.google.com/');
+ add(RUB[3],'TinEye','Recherche inversée : origine et reprises d’une image','https://tineye.com/');
+ const O='Sources officielles et archives';
+ if(full)add(O,'Annuaire des entreprises','Dirigeants et activités publiés officiellement','https://annuaire-entreprises.data.gouv.fr/rechercher?terme='+encodeURIComponent(full));
+ add(O,'BODACC','Annonces officielles d’entreprises','https://www.bodacc.fr/');
+ add(O,'Wayback Machine','Versions archivées d’une page publique','https://web.archive.org/');
+ searchCards=a.map((x,i)=>({...x,key:x.rub+'|'+x.title}));
 }
+function renderSearches(){
+ const box=$('searches');
+ if(!searchCards.length){box.innerHTML='<div class="empty">Choisis un cadre, confirme-le, saisis au moins un identifiant, puis génère les recherches.</div>';$('bar').style.width='0';$('progressText').textContent='';return}
+ const groups={};searchCards.forEach(c=>(groups[c.rub]=groups[c.rub]||[]).push(c));
+ box.innerHTML=Object.entries(groups).map(([r,l])=>`<div class="group"><h3>${esc(r)}</h3><div class="searchlist">${l.map(c=>`<div class="searchcard${done.has(c.key)?' done':''}"><b>${esc(c.title)}</b><p>${esc(c.desc)}</p><div class="row"><a href="${esc(c.url)}" target="_blank" rel="noopener noreferrer">Ouvrir</a><label><input type="checkbox" data-key="${esc(c.key)}" ${done.has(c.key)?'checked':''}>Consulté</label></div></div>`).join('')}</div></div>`).join('');
+ const n=searchCards.filter(c=>done.has(c.key)).length;
+ $('bar').style.width=Math.round(100*n/searchCards.length)+'%';
+ $('progressText').textContent=`${n} sur ${searchCards.length} recherches consultées`;
+}
+function gate(){const ok=$('purpose').value&&$('consent').checked;$('generate').disabled=!ok;$('lookup').disabled=!ok}
+
+/* ---------- Registres ouverts ---------- */
+async function getJson(url,ms=9000){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(url,{signal:c.signal});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json()}finally{clearTimeout(t)}}
+const plain=s=>{const t=document.createElement('textarea');t.innerHTML=String(s).replace(/<[^>]+>/g,'');return t.value};
+async function lookup(){
+ const first=clean(val('first')),last=clean(val('last'));
+ if(!first||!last){$('found').innerHTML='<div class="empty">Renseigne le prénom et le nom pour interroger les registres.</div>';return}
+ const full=first+' '+last;hits=[];const status=[];
+ $('lookup').disabled=true;$('found').innerHTML='<div class="status-line">Interrogation en cours…</div>';
+ const note='Correspondance sur le nom seul : l’identité reste à vérifier.';
+ const tasks=[
+ ['Registre national des entreprises',async()=>{
+  const j=await getJson('https://recherche-entreprises.api.gouv.fr/search?per_page=10&nom_personne='+encodeURIComponent(last)+'&prenom_personne='+encodeURIComponent(first));
+  (j.results||[]).slice(0,10).forEach(r=>{
+   const siren=String(r.siren||'').replace(/\D/g,'');if(!siren)return;
+   const d=(r.dirigeants||[]).find(x=>String(x.nom||'').toLowerCase()===last.toLowerCase());
+   hits.push({rubrique:RUB[0],fiabilite:FIAB[0],title:`${r.nom_complet||'Entreprise'} (SIREN ${siren})`,description:`Fonction publiée au registre : ${d?(d.qualite||'dirigeant'):'dirigeant ou élu (à préciser)'}, entreprise « ${r.nom_complet||''} », SIREN ${siren}.`,url:'https://annuaire-entreprises.data.gouv.fr/entreprise/'+siren,notes:note});
+  });return (j.results||[]).length}],
+ ['Wikipédia',async()=>{
+  const j=await getJson('https://fr.wikipedia.org/w/api.php?action=query&list=search&format=json&origin=*&srlimit=5&srsearch='+encodeURIComponent(full));
+  const l=(j.query&&j.query.search)||[];
+  l.forEach(r=>hits.push({rubrique:RUB[0],fiabilite:FIAB[2],title:'Wikipédia : '+r.title,description:`Article « ${r.title} » : ${plain(r.snippet).slice(0,220)}`,url:'https://fr.wikipedia.org/wiki/'+encodeURIComponent(String(r.title).replace(/ /g,'_')),notes:note}));return l.length}],
+ ['Wikidata',async()=>{
+  const j=await getJson('https://www.wikidata.org/w/api.php?action=wbsearchentities&format=json&origin=*&language=fr&uselang=fr&limit=5&search='+encodeURIComponent(full));
+  const l=(j.search||[]).filter(r=>/^Q\d+$/.test(r.id||''));
+  l.forEach(r=>hits.push({rubrique:RUB[0],fiabilite:FIAB[2],title:'Wikidata : '+(r.label||r.id),description:`Entité Wikidata ${r.id} : ${r.label||''}${r.description?' — '+r.description:''}.`,url:'https://www.wikidata.org/wiki/'+r.id,notes:note}));return l.length}]
+ ];
+ for(const [name,fn] of tasks){try{const n=await fn();status.push(`${name} : ${n} résultat${n>1?'s':''}`)}catch(e){status.push(`${name} : indisponible (${e.name==='AbortError'?'délai dépassé':'erreur réseau ou service'})`)}}
+ renderFound(status);gate();
+}
+function renderFound(status){
+ $('found').innerHTML=status.map(s=>`<div class="status-line">${esc(s)}</div>`).join('')+(hits.length?hits.map((h,i)=>`<div class="hit"><div><p><b>${esc(h.title)}</b></p><p>${esc(h.description)}</p><a href="${esc(h.url)}" target="_blank" rel="noopener noreferrer">Voir la source</a></div><button class="small" data-hit="${i}">Ajouter au rapport</button></div>`).join(''):'<div class="empty">Aucune correspondance publique trouvée dans ces trois sources. Cela ne prouve rien : la personne peut simplement ne pas y figurer.</div>');
+}
+
+/* ---------- Formulaire ---------- */
+function fillSelect(id,list){$(id).innerHTML=list.map(x=>`<option>${esc(x)}</option>`).join('')}
+function resetForm(){['description','source','fait','pubdate','eventdate','notes'].forEach(i=>$(i).value='');$('homonyme').checked=false;$('contradiction').checked=false;$('statut').value=STAT[2];$('fiabilite').value=FIAB[3];editingId=null;$('add').textContent='Ajouter au rapport';$('cancelEdit').hidden=true;$('formmsg').textContent=''}
+function saveEntry(){
+ const m=$('formmsg');m.textContent='';
+ const description=val('description'),source=val('source');
+ if(!description){m.textContent='Ajoute un résumé factuel.';return}
+ if(source){if(!validUrl(source)){m.textContent='URL invalide : utilise une adresse http ou https.';return}
+  const dup=entries.find(e=>e.id!==editingId&&e.source&&normUrl(e.source)===normUrl(source));
+  if(dup&&!confirm('Cette source figure déjà dans le rapport. L’ajouter quand même ?'))return}
+ const data={rubrique:val('rubrique'),statut:val('statut'),fiabilite:val('fiabilite'),fait:val('fait'),description,source,pubdate:val('pubdate'),eventdate:val('eventdate'),notes:val('notes'),homonyme:$('homonyme').checked,contradiction:$('contradiction').checked};
+ if(editingId){const i=entries.findIndex(e=>e.id===editingId);if(i>-1)entries[i]={...entries[i],...data}}else entries.push({id:nextId++,...data});
+ resetForm();render();
+}
+function editEntry(id){const e=entries.find(x=>x.id===id);if(!e)return;editingId=id;
+ ['rubrique','statut','fiabilite','fait','description','source','pubdate','eventdate','notes'].forEach(k=>$(k).value=e[k]||'');
+ $('homonyme').checked=!!e.homonyme;$('contradiction').checked=!!e.contradiction;
+ $('add').textContent='Enregistrer les modifications';$('cancelEdit').hidden=false;$('description').scrollIntoView({behavior:'smooth',block:'center'});$('description').focus()}
+
+/* ---------- Analyse de fiabilité ---------- */
+function analyze(){
+ const out=[];const groups={};
+ entries.forEach(e=>{const k=(e.fait||'').toLowerCase().replace(/\s+/g,' ').trim();if(k)(groups[k]=groups[k]||[]).push(e)});
+ Object.values(groups).forEach(list=>{
+  const label=list[0].fait;const doms=new Set(list.map(e=>rootDomain(host(e.source))).filter(Boolean));
+  const official=list.some(e=>e.fiabilite===FIAB[0]);const indep=official||doms.size>=2;
+  const conf=list.some(e=>e.statut===STAT[0]);
+  if(conf&&!indep)out.push({l:'warn',t:`« ${label} » est marqué comme fait confirmé sans source officielle ni deux domaines indépendants.`});
+  if(!conf&&indep)out.push({l:'info',t:`« ${label} » est recoupé (${official?'source officielle':doms.size+' domaines distincts'}) : tu peux le passer en fait confirmé si l’identité est établie.`});
+  if(list.length>1&&doms.size===1)out.push({l:'info',t:`« ${label} » : toutes les sources viennent du même domaine, elles ne sont donc pas indépendantes.`});
+ });
+ entries.forEach(e=>{
+  if(e.statut===STAT[0]&&!e.fait&&e.fiabilite!==FIAB[0])out.push({l:'warn',t:`Résultat confirmé sans référence de fait, donc sans recoupement possible : « ${e.description.slice(0,70)} ».`});
+  if(e.contradiction)out.push({l:'warn',t:`Contradiction signalée : « ${(e.fait||e.description).slice(0,70)} ».`});
+  if(e.pubdate&&e.eventdate&&e.eventdate>e.pubdate)out.push({l:'warn',t:`Événement daté après sa publication : « ${(e.fait||e.description).slice(0,70)} ».`});
+  if(e.source&&e.fiabilite===FIAB[3]&&e.statut!==STAT[2])out.push({l:'info',t:`Source anonyme ou inconnue utilisée pour un résultat « ${e.statut.toLowerCase()} » : « ${e.description.slice(0,60)} ».`});
+ });
+ const hom=entries.filter(e=>e.homonyme).length;
+ if(hom)out.push({l:'info',t:`${hom} résultat${hom>1?'s':''} concerne${hom>1?'nt':''} un homonyme possible : ne pas les attribuer à la personne recherchée sans élément d’identification supplémentaire.`});
+ const doms={};entries.forEach(e=>{const d=rootDomain(host(e.source));if(d)doms[d]=(doms[d]||0)+1});
+ const tot=Object.values(doms).reduce((a,b)=>a+b,0);const top=Object.entries(doms).sort((a,b)=>b[1]-a[1])[0];
+ if(tot>=4&&top&&top[1]/tot>.5)out.push({l:'info',t:`Plus de la moitié des sources viennent de ${top[0]} : diversifie les sources.`});
+ const und=entries.filter(e=>!e.eventdate).length;
+ if(und)out.push({l:'info',t:`${und} résultat${und>1?'s':''} sans date d’événement : absent${und>1?'s':''} de la chronologie.`});
+ if(entries.length&&!out.some(x=>x.l==='warn'))out.push({l:'ok',t:'Aucune incohérence détectée automatiquement. Cela ne remplace pas ta relecture.'});
+ return out}
+
+/* ---------- Rendu du rapport ---------- */
+function entryHtml(e,editable){
+ return `<div class="entry"><p><span class="badge ${SCLASS[e.statut]}">${SMARK[e.statut]||''}${esc(e.statut)}</span>${esc(e.description)}</p>
+ <div class="meta"><span>${esc(e.fiabilite)}</span>${e.fait?`<span>Fait : ${esc(e.fait)}</span>`:''}${e.pubdate?`<span>Publié le ${esc(e.pubdate)}</span>`:''}${e.eventdate?`<span>Événement : ${esc(e.eventdate)}</span>`:''}${e.homonyme?'<span class="flag">Homonyme possible</span>':''}${e.contradiction?'<span class="flag">Contradiction signalée</span>':''}</div>
+ ${e.notes?`<div class="meta">Limites : ${esc(e.notes)}</div>`:''}
+ <div class="meta">${e.source?`<a href="${esc(e.source)}" target="_blank" rel="noopener noreferrer">Source</a><a href="https://web.archive.org/web/*/${esc(e.source)}" target="_blank" rel="noopener noreferrer">Archives</a>`:'<span>Aucune URL</span>'}${editable?`<button class="small noprint" data-edit="${e.id}">Modifier</button><button class="small noprint" data-del="${e.id}" aria-label="Supprimer ce résultat">Supprimer</button>`:''}</div></div>`}
+function reportBody(editable){
+ if(!entries.length)return '<div class="empty">Aucun résultat pour le moment. Ajoute des sources à l’étape 3 ou 4.</div>';
+ let h='';
+ RUB.forEach(r=>{const l=entries.filter(e=>e.rubrique===r);if(l.length)h+=`<h3>${esc(r)}</h3>`+l.map(e=>entryHtml(e,editable)).join('')});
+ const tl=entries.filter(e=>e.eventdate).sort((a,b)=>a.eventdate.localeCompare(b.eventdate));
+ h+='<h3>Chronologie</h3>'+(tl.length?`<p>Classée par date d’événement, et non par date de publication.</p><div class="timeline">${tl.map(e=>`<div class="entry"><p><b>${esc(e.eventdate)}</b> · ${esc(e.rubrique)}</p>${entryHtml(e,false).replace('<div class="entry">','<div>')}</div>`).join('')}</div>`:'<div class="empty">Aucun événement daté.</div>');
+ h+='<h3>Fiabilité</h3>'+analyze().map(x=>`<div class="issue ${x.l}">${esc(x.t)}</div>`).join('');
+ return h}
 function render(){
  $('count').textContent=entries.length;
- $('sourceCount').textContent=new Set(entries.map(e=>e.source).filter(Boolean)).size;
- $('checkCount').textContent=entries.filter(e=>/vérifier|faible/i.test(e.confidence)).length;
- if(!entries.length){$('results').innerHTML='<div class="empty">Aucun résultat ajouté pour le moment.</div>';return}
- $('results').innerHTML='<div class="tablewrap"><table><thead><tr><th>Catégorie</th><th>Résumé factuel</th><th>Source</th><th>Confiance</th><th>Date</th><th>Limites</th><th></th></tr></thead><tbody>'+entries.map((e,i)=>`<tr><td>${esc(e.category)}</td><td>${esc(e.description)}</td><td>${e.source?`<a href="${esc(e.source)}" target="_blank" rel="noopener noreferrer">Ouvrir ↗</a>`:'—'}</td><td><span class="tag">${esc(e.confidence)}</span></td><td>${esc(e.pubdate||'—')}</td><td>${esc(e.notes||'—')}</td><td><button data-delete="${i}" aria-label="Supprimer">×</button></td></tr>`).join('')+'</tbody></table></div>';
- document.querySelectorAll('[data-delete]').forEach(b=>b.addEventListener('click',()=>{entries.splice(Number(b.dataset.delete),1);render()}));
-}
-function download(name,content,type){const blob=new Blob([content],{type}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
-function payload(){return {generatedAt:new Date().toISOString(),purpose:val('purpose'),subject:{firstName:val('first'),lastName:val('last'),email:val('email'),phone:val('phone')},results:entries}}
-$('generate').addEventListener('click',generate);
-$('clear').addEventListener('click',()=>{['first','last','email','phone'].forEach(id=>$(id).value='');$('searches').innerHTML='<div class="empty">Champs effacés. Saisis les identifiants puis génère les recherches.</div>'});
-$('add').addEventListener('click',()=>{
- const description=val('description'),source=val('source');
- if(!description){alert('Ajoute un résumé factuel.');return}
- if(source){try{const u=new URL(source);if(!['https:','http:'].includes(u.protocol))throw 0}catch{alert('URL invalide : utilise http ou https.');return}}
- entries.push({category:val('category'),confidence:val('confidence'),description,source,pubdate:val('pubdate'),notes:val('notes')});
- ['description','source','pubdate','notes'].forEach(id=>$(id).value='');render();
-});
-$('json').addEventListener('click',()=>download('rapport-osint.json',JSON.stringify(payload(),null,2),'application/json;charset=utf-8'));
-$('csv').addEventListener('click',()=>{const rows=[['Catégorie','Résumé','URL source','Confiance','Date publication','Limites'],...entries.map(e=>[e.category,e.description,e.source,e.confidence,e.pubdate,e.notes])];const s=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');download('rapport-osint.csv','\ufeff'+s,'text/csv;charset=utf-8')});
-$('html').addEventListener('click',()=>{
- const subject=[val('first'),val('last')].filter(Boolean).join(' ')||'Sujet non renseigné';
- const body=entries.map(e=>`<article><h2>${esc(e.category)}</h2><p>${esc(e.description)}</p><p>Confiance : <b>${esc(e.confidence)}</b> · Date de publication : ${esc(e.pubdate||'non renseignée')}</p>${e.source?`<p>Source : <a href="${esc(e.source)}">${esc(e.source)}</a></p>`:''}<p>Limites : ${esc(e.notes||'non renseignées')}</p></article>`).join('');
- download('rapport-osint.html','<!doctype html><html lang="fr"><meta charset="utf-8"><title>Rapport OSINT</title><style>body{font:16px/1.6 system-ui;max-width:900px;margin:40px auto;padding:0 20px;color:#172033}article{border-top:1px solid #ccc;padding:15px 0}a{overflow-wrap:anywhere}</style><h1>Rapport OSINT — '+esc(subject)+'</h1><p>Généré le '+new Date().toLocaleString('fr-FR')+'. Rapport constitué à partir des éléments consignés par l’utilisateur ; exactitude non garantie.</p>'+body+'</html>','text/html;charset=utf-8');
-});
+ $('cOk').textContent=entries.filter(e=>e.statut===STAT[0]).length;
+ $('cMid').textContent=entries.filter(e=>e.statut===STAT[1]).length;
+ $('cLow').textContent=entries.filter(e=>e.statut===STAT[2]).length;
+ $('sourceCount').textContent=new Set(entries.map(e=>rootDomain(host(e.source))).filter(Boolean)).size;
+ $('report').innerHTML=reportBody(true);
+ saveDraft()}
+
+/* ---------- Brouillon facultatif ---------- */
+function saveDraft(){try{if($('persist').checked){localStorage.setItem('osint-persist','1');localStorage.setItem('osint-draft',JSON.stringify(entries))}}catch{}}
+function loadDraft(){try{if(localStorage.getItem('osint-persist')==='1'){$('persist').checked=true;const d=JSON.parse(localStorage.getItem('osint-draft')||'[]');entries=sanitize(d);nextId=entries.reduce((m,e)=>Math.max(m,e.id),0)+1}}catch{}}
+
+/* ---------- Import et export ---------- */
+function sanitize(arr){
+ if(!Array.isArray(arr))return [];
+ const s=(v,n=1500)=>String(v??'').slice(0,n);
+ const d=v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v||''))?String(v):'';
+ const oldRub={'Identité / homonymie':RUB[0],'Profil professionnel':RUB[1],'Publication publique':RUB[1],'Photo / vidéo publique':RUB[3],'Voyage explicitement publié':RUB[4],'Source officielle':RUB[0]};
+ return arr.slice(0,500).map((e,i)=>{
+  let statut=STAT.includes(e.statut)?e.statut:(/confirm/i.test(e.confidence||'')?STAT[0]:/élevé|moyen/i.test(e.confidence||'')?STAT[1]:STAT[2]);
+  let rubrique=RUB.includes(e.rubrique)?e.rubrique:(oldRub[e.category]||RUB[5]);
+  const source=validUrl(e.source)?s(e.source,2000):'';
+  let fiabilite=FIAB.includes(e.fiabilite)?e.fiabilite:(e.category==='Source officielle'?FIAB[0]:guessFiab(source));
+  return {id:i+1,rubrique,statut,fiabilite,fait:s(e.fait,200),description:s(e.description),source,pubdate:d(e.pubdate),eventdate:d(e.eventdate),notes:s(e.notes,500),homonyme:!!e.homonyme,contradiction:!!e.contradiction}}).filter(e=>e.description)}
+function subject(){const mask=$('maskExport').checked;const em=val('email'),ph=val('phone');
+ return {firstName:val('first'),lastName:val('last'),email:mask?maskEmail(em):em,phone:mask?maskPhone(ph):ph,context:val('context')}}
+function download(name,content,type){const b=new Blob([content],{type}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function exportCsv(){
+ const rows=[['Rubrique','Statut','Type de source','Référence du fait','Résumé','URL','Date de publication','Date de l’événement','Limites','Homonyme possible','Contradiction'],...entries.map(e=>[e.rubrique,e.statut,e.fiabilite,e.fait,e.description,e.source,e.pubdate,e.eventdate,e.notes,e.homonyme?'oui':'non',e.contradiction?'oui':'non'])];
+ const f=v=>{let x=String(v??'');if(/^[=+\-@\t\r]/.test(x))x="'"+x;return '"'+x.replace(/"/g,'""')+'"'};
+ download('rapport-osint.csv','\ufeff'+rows.map(r=>r.map(f).join(';')).join('\r\n'),'text/csv;charset=utf-8')}
+function exportHtml(){
+ const sj=subject();const name=[sj.firstName,sj.lastName].filter(Boolean).join(' ')||'Sujet non renseigné';
+ const css='body{font:16px/1.6 system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0 20px;color:#172033}h1{font-size:1.8rem}h3{margin-top:28px;border-bottom:1px solid #ccc;padding-bottom:4px}.entry{border:1px solid #ccc;border-radius:8px;padding:10px 14px;margin:10px 0}.entry p{margin:0 0 6px;color:#172033}.meta{font-size:.85rem;color:#444;display:flex;gap:6px 14px;flex-wrap:wrap;margin:3px 0}.badge{border:1px solid;border-radius:6px;padding:1px 7px;font-size:.8rem;font-weight:700;margin-right:6px}.badge.ok{color:#116b45}.badge.mid{color:#8a5a00}.badge.low{color:#a02222}.flag{color:#8a5a00}.issue{padding:8px 12px;border-left:3px solid #888;background:#f3f3f3;margin:6px 0}.issue.warn{border-color:#a02222}.timeline{border-left:2px solid #bbb;padding-left:14px}a{color:#0b3d91;overflow-wrap:anywhere}button{display:none}';
+ const head=`<h1>Rapport OSINT — ${esc(name)}</h1><p>Généré le ${esc(new Date().toLocaleString('fr-FR'))}. Cadre : ${esc(val('purpose')||'non renseigné')}.${sj.context?' Contexte : '+esc(sj.context)+'.':''}${sj.email?' E-mail : '+esc(sj.email)+'.':''}${sj.phone?' Téléphone : '+esc(sj.phone)+'.':''}</p><p>Méthode : résultats issus de sources publiques consignées par l’utilisateur. Chaque résultat est classé comme fait confirmé, correspondance probable ou hypothèse à vérifier. Exactitude non garantie ; ne pas utiliser pour prendre une décision défavorable sans vérification indépendante.</p>`;
+ download('rapport-osint.html','<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rapport OSINT</title><style>'+css+'</style></head><body>'+head+reportBody(false)+'</body></html>','text/html;charset=utf-8')}
+
+/* ---------- Événements ---------- */
+fillSelect('rubrique',RUB);fillSelect('statut',STAT);fillSelect('fiabilite',FIAB);$('statut').value=STAT[2];$('fiabilite').value=FIAB[3];
+['purpose','consent'].forEach(i=>$(i).addEventListener('change',gate));
+$('generate').addEventListener('click',()=>{
+ const em=val('email');$('idmsg').textContent='';
+ if(!val('first')&&!val('last')&&!em&&!val('phone')){$('idmsg').textContent='Saisis au moins un identifiant.';return}
+ if(em&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){$('idmsg').textContent='Adresse e-mail invalide.';return}
+ done=new Set();buildSearches();renderSearches()});
+$('searches').addEventListener('change',ev=>{const k=ev.target.dataset&&ev.target.dataset.key;if(!k)return;ev.target.checked?done.add(k):done.delete(k);renderSearches()});
+$('lookup').addEventListener('click',lookup);
+$('found').addEventListener('click',ev=>{const b=ev.target.closest('[data-hit]');if(!b)return;const h=hits[Number(b.dataset.hit)];if(!h)return;
+ if(entries.some(e=>e.source&&normUrl(e.source)===normUrl(h.url))){b.textContent='Déjà ajouté';b.disabled=true;return}
+ entries.push({id:nextId++,rubrique:h.rubrique,statut:STAT[2],fiabilite:h.fiabilite,fait:'',description:h.description,source:h.url,pubdate:'',eventdate:'',notes:h.notes,homonyme:true,contradiction:false});
+ b.textContent='Ajouté';b.disabled=true;render()});
+$('source').addEventListener('blur',()=>{const u=val('source');if(u&&validUrl(u)&&$('fiabilite').value===FIAB[3])$('fiabilite').value=guessFiab(u)});
+$('add').addEventListener('click',saveEntry);
+$('cancelEdit').addEventListener('click',resetForm);
+$('report').addEventListener('click',ev=>{
+ const ed=ev.target.closest('[data-edit]'),dl=ev.target.closest('[data-del]');
+ if(ed)editEntry(Number(ed.dataset.edit));
+ if(dl&&confirm('Supprimer ce résultat du rapport ?')){entries=entries.filter(e=>e.id!==Number(dl.dataset.del));if(editingId===Number(dl.dataset.del))resetForm();render()}});
+$('clear').addEventListener('click',()=>{
+ if(!confirm('Effacer les identifiants, les recherches et le rapport ?'))return;
+ ['first','last','email','phone','context'].forEach(i=>$(i).value='');entries=[];hits=[];searchCards=[];done=new Set();
+ $('found').innerHTML='';renderSearches();resetForm();render();
+ try{localStorage.removeItem('osint-draft')}catch{}});
+$('persist').addEventListener('change',()=>{if($('persist').checked)saveDraft();else try{localStorage.removeItem('osint-persist');localStorage.removeItem('osint-draft')}catch{}});
+$('csv').addEventListener('click',exportCsv);
+$('json').addEventListener('click',()=>download('rapport-osint.json',JSON.stringify({version:2,generatedAt:new Date().toISOString(),purpose:val('purpose'),subject:subject(),results:entries},null,2),'application/json;charset=utf-8'));
+$('html').addEventListener('click',exportHtml);
 $('print').addEventListener('click',()=>window.print());
+$('importBtn').addEventListener('click',()=>$('importFile').click());
+$('importFile').addEventListener('change',ev=>{
+ const f=ev.target.files[0];if(!f)return;
+ if(f.size>3e6){alert('Fichier trop volumineux.');return}
+ const r=new FileReader();
+ r.onload=()=>{try{const j=JSON.parse(r.result);const list=sanitize(Array.isArray(j)?j:(j.results||j.entries));
+  if(!list.length){alert('Aucun résultat exploitable dans ce fichier.');return}
+  list.forEach(e=>{e.id=nextId++;entries.push(e)});render()}catch{alert('Fichier JSON invalide.')}ev.target.value=''};
+ r.readAsText(f)});
+
+loadDraft();render();gate();
 </script>
-</body></html>
+</body>
+</html>
