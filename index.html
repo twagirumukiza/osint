@@ -73,6 +73,14 @@ details{margin:8px 0}summary{cursor:pointer;font-weight:700;padding:8px 2px;colo
 .synth{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--panel2);margin:10px 0}.synth p{color:var(--text)}
 .pipe{list-style:none;padding:0;margin:12px 0 0;font-size:.86rem;color:var(--muted)}.pipe li{margin:3px 0}.pipe li.ok{color:var(--green)}.pipe li.err{color:var(--amber)}
 .auto{font-size:.76rem;color:var(--blue)}
+.chipbtn{border:1px solid var(--line);background:none;border-radius:999px;padding:5px 12px;font-size:.82rem;color:var(--muted);font-weight:500}
+.chipbtn[aria-pressed=true]{background:var(--blue);border-color:var(--blue);color:#0b1427;font-weight:700}
+.toolgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tool{border:1px solid var(--line);border-radius:10px;padding:11px 13px;background:var(--field)}
+.tool p{font-size:.84rem;margin:2px 0 6px}.tool .warn{color:var(--amber);font-size:.8rem}
+.tool .meta a{color:#b8d1ff;font-weight:700;text-decoration:none}
+.famnote{font-size:.84rem;margin:2px 0 8px}
+@media(max-width:800px){.toolgrid{grid-template-columns:1fr}}
 @media(max-width:800px){main{grid-template-columns:1fr}.wide{grid-column:auto}.grid2,.searchlist{grid-template-columns:1fr}.full{grid-column:auto}.panel{padding:15px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 @media print{
@@ -89,7 +97,7 @@ details{margin:8px 0}summary{cursor:pointer;font-weight:700;padding:8px 2px;colo
 <header class="noprint">
 <h1>OSINT Public</h1>
 <p>Prépare tes recherches, interroge les registres officiels ouverts, consigne chaque source et obtiens un rapport avec contrôles de cohérence.</p>
-<div class="chips"><span class="chip">Gratuit</span><span class="chip">Sans compte</span><span class="chip">Sans serveur</span><span class="chip">Export HTML, CSV, JSON</span><span class="chip">Import de rapport</span></div>
+<div class="chips"><span class="chip">Gratuit</span><span class="chip">Sans compte</span><span class="chip">Sans serveur</span><span class="chip">Export HTML, CSV, JSON</span><span class="chip">Import de rapport</span><span class="chip">Boîte à outils OSINT</span></div>
 </header>
 
 <main>
@@ -169,6 +177,20 @@ details{margin:8px 0}summary{cursor:pointer;font-weight:700;padding:8px 2px;colo
 <label class="check noprint" for="maskExport"><input type="checkbox" id="maskExport" checked>Masquer l’e-mail et le téléphone dans les exports</label>
 <label class="check noprint" for="persist"><input type="checkbox" id="persist">Garder le brouillon de rapport dans ce navigateur (désactivé par défaut ; les identifiants ne sont jamais enregistrés)</label>
 <div id="report"></div>
+</section>
+<section class="panel wide noprint" id="toolsPanel">
+<h2>6. Boîte à outils OSINT</h2>
+<p>Référentiel d’outils par famille, avec leur accès et leur tarif. Choisis un objectif, ou filtre par famille, tarif ou mot-clé. Les liens ouvrent les services eux-mêmes : aucune donnée saisie plus haut n’y est transmise.</p>
+<div class="chips" id="tobj" role="group" aria-label="Choisir selon l’objectif"></div>
+<div class="notice info" id="tnote" hidden></div>
+<div class="grid2">
+<div class="full"><label for="tq">Rechercher un outil</label><input id="tq" type="search" autocomplete="off" placeholder="Nom ou fonction (ex. e-mail, images, entreprise)"></div>
+<div><label for="tfam">Famille</label><select id="tfam"></select></div>
+<div><label for="ttar">Tarif</label><select id="ttar"><option value="">Tous les tarifs</option><option value="0">Gratuit</option><option value="1">Freemium / limité</option><option value="2">Payant ou à vérifier</option></select></div>
+</div>
+<div class="status-line" id="tcount" aria-live="polite"></div>
+<div id="tools"></div>
+<div class="notice">Ce référentiel rassemble les outils cités ou ajoutés dans la conversation, sans prétendre couvrir tous les outils OSINT. Disponibilité, conditions d’accès et maintenance sont à vérifier avant un usage professionnel. Les services de recherche de particuliers qui exposent des adresses personnelles sont décrits sans lien, car hors du cadre de cette application.</div>
 </section>
 </main>
 <div class="foot noprint">Les recherches web sont des liens préparés ; les pages ne sont pas collectées automatiquement. Seules les cinq API ouvertes de l’étape 3 sont interrogées. Une automatisation plus large devra passer par des API officielles, avec quotas et clés protégées côté serveur.</div>
@@ -478,6 +500,119 @@ $('importFile').addEventListener('change',ev=>{
   if(!list.length){alert('Aucun résultat exploitable dans ce fichier.');return}
   list.forEach(e=>{e.id=nextId++;entries.push(e)});render()}catch{alert('Fichier JSON invalide.')}ev.target.value=''};
  r.readAsText(f)});
+
+/* ---------- Boîte à outils ---------- */
+const FAM=[
+ {id:1,n:"Recherche générale et découverte",note:""},
+ {id:2,n:"Personnes et identités",note:"Les services américains de recherche de personnes agrègent des données souvent incomplètes, obsolètes ou mélangeant plusieurs personnes. Certains exposent des adresses personnelles : ils sont décrits sans lien."},
+ {id:3,n:"Comptes et pseudonymes",note:"Les outils d’énumération peuvent déclencher des alertes ou des e-mails. La présence d’un profil ne prouve pas l’identité de son titulaire."},
+ {id:4,n:"E-mails, fuites et coordonnées",note:"Hunter.io concerne surtout les coordonnées professionnelles. Have I Been Pwned vérifie des fuites connues, sans prouver qu’un compte est compromis aujourd’hui."},
+ {id:5,n:"Réseaux sociaux et relations entre entités",note:"Distingue les relations démontrées par des sources de celles qui sont supposées. Deux profils portant le même nom ne sont pas forcément liés."},
+ {id:6,n:"Entreprises, dirigeants et informations professionnelles",note:"Pour la France, les registres officiels sont préférables aux agrégateurs pour vérifier un mandat, une fonction ou une information administrative."},
+ {id:7,n:"Domaines, sites Web et infrastructures",note:"Utile pour l’audit de surface d’exposition d’une organisation. Les fonctions actives sont réservées aux systèmes pour lesquels tu as une autorisation."},
+ {id:8,n:"Images, vidéos et métadonnées",note:"La recherche inversée ne garantit pas de retrouver la première publication d’une image. Les métadonnées peuvent avoir été supprimées ou modifiées."},
+ {id:9,n:"Archives, veille et organisation d’enquête",note:"Documente l’enquête dans le temps : conserve les liens, note les dates, archive les pages accessibles et suis les modifications."}
+];
+const TARIFS=["Gratuit","Freemium / limité","Payant ou à vérifier"];
+const TCLASS=["ok","mid","low"];
+const ENUM="Tests pouvant déclencher des alertes ou des e-mails : à utiliser sur tes propres comptes ou avec accord.";
+/* [nom, familles, fonction, tarif, lien, vigilance, drapeaux : z = sélection à 0 €, h = historique, s = sans lien] */
+const TOOLS=[
+ ["Google / Google Dorks",[1,2],"Recherche avancée, pages indexées, documents publics, identification d’homonymes",0,"https://www.google.com/","","z"],
+ ["Babel X",[1,5],"Recherche multilingue et veille sur des sources Web",2,"https://www.babelstreet.com/","",""],
+ ["IntelTechniques",[1],"Méthodes, répertoires et ressources de recherche OSINT",0,"https://inteltechniques.com/","Certaines méthodes peuvent être obsolètes.",""],
+ ["OSINT Framework",[1],"Annuaire d’outils et de ressources OSINT classés par catégorie",0,"https://osintframework.com/","","z"],
+ ["Bellingcat Toolkit",[1,8],"Ressources d’enquête, géolocalisation et vérification",0,"https://www.bellingcat.com/category/resources/","",""],
+ ["SearchPeopleFree",[2],"Recherche de personnes et coordonnées, surtout aux États-Unis",1,"","Agrège des coordonnées personnelles : hors du cadre de cette application.","s"],
+ ["ZabaSearch",[2],"Recherche de personnes à partir de données publiques américaines",2,"","Service historique, disponibilité à vérifier ; coordonnées personnelles : hors cadre.","sh"],
+ ["FamilyTreeNow",[2],"Généalogie et recherche de liens familiaux",1,"","Expose des informations sur des proches : hors cadre.","s"],
+ ["Intelius",[2],"Rapports d’identité et agrégation de données américaines",2,"","Rapports sur des particuliers : hors cadre.","s"],
+ ["Whitepages",[2],"Annuaire de personnes, adresses et numéros américains",1,"","Adresses personnelles : hors cadre.","s"],
+ ["Epieos",[2,4],"Indices publics associés à une adresse e-mail ou un téléphone",1,"https://epieos.com/","Ne retiens que ce qui est public et recoupé.","z"],
+ ["Maltego",[2,5],"Relations entre personnes, organisations et identifiants ; cartographie et corrélation de sources",1,"https://www.maltego.com/","",""],
+ ["Sherlock",[3,5],"Recherche de pseudonymes sur des plateformes sociales",0,"https://github.com/sherlock-project/sherlock","Un profil homonyme n’est pas la personne recherchée.","z"],
+ ["Maigret",[3,5],"Recherche de comptes, profils et informations publiques associées",0,"https://github.com/soxoj/maigret","Un profil homonyme n’est pas la personne recherchée.","z"],
+ ["WhatsMyName",[3],"Recherche de pseudonymes sur des sites répertoriés",0,"https://whatsmyname.app/","",""],
+ ["Blackbird",[3],"Recherche de comptes associés à des identifiants",0,"gh:Blackbird OSINT username",ENUM,""],
+ ["Social Analyzer",[3,5],"Recherche et analyse de profils sociaux",0,"gh:social-analyzer","",""],
+ ["user-scanner",[3,4],"Recherche de comptes par e-mail ou pseudonyme",0,"gh:user-scanner",ENUM,""],
+ ["Holehe",[3,4],"Vérification d’indices d’inscription associés à un e-mail",0,"https://github.com/megadose/holehe",ENUM,""],
+ ["Ignorant",[3,4],"Recherche limitée de comptes à partir d’un numéro de téléphone",0,"gh:ignorant megadose",ENUM,""],
+ ["GHunt",[3],"Investigation de données exposées par l’écosystème Google",0,"https://github.com/mxrch/GHunt",ENUM,""],
+ ["Botometer",[3],"Évaluation de caractéristiques automatisées de comptes sociaux",2,"https://botometer.osome.iu.edu/","Service historique, disponibilité à vérifier.","h"],
+ ["Hunter.io",[4],"Recherche d’adresses e-mail professionnelles par domaine (50 crédits gratuits par mois)",1,"https://hunter.io/","Vérifier les adresses trouvées.",""],
+ ["Have I Been Pwned",[4],"Vérification de présence dans des fuites de données connues",1,"https://haveibeenpwned.com/","Ne prouve pas qu’un compte est actuellement compromis. Pour ta propre adresse ou avec accord.","z"],
+ ["Burner",[4],"Numéro secondaire pour séparer des communications",2,"https://www.burnerapp.com/","Couverture géographique limitée.",""],
+ ["Oligrapher",[5],"Visualisation de réseaux de personnes et d’organisations (LittleSis)",0,"https://littlesis.org/oligrapher/","Couverture dépendante des données disponibles.",""],
+ ["Pappers",[6],"Informations publiques sur les entreprises françaises",1,"https://www.pappers.fr/","",""],
+ ["Societe.ninja",[6],"Recherche d’entreprises et agrégation de données publiques",2,"https://societe.ninja/","Agrégateur : recouper avec les registres officiels.",""],
+ ["Annuaire des entreprises",[6],"Informations administratives officielles",0,"https://annuaire-entreprises.data.gouv.fr/","","z"],
+ ["BODACC",[6],"Annonces légales et événements relatifs aux entreprises",0,"https://www.bodacc.fr/","","z"],
+ ["INPI Data",[6],"Informations sur les entreprises et actes accessibles",0,"https://data.inpi.fr/","",""],
+ ["Légifrance",[6],"Textes officiels et publications juridiques",0,"https://www.legifrance.gouv.fr/","",""],
+ ["LinkedIn",[3,6],"Parcours professionnels et publications publiques",0,"https://www.linkedin.com/","Consultation publique limitée ; un compte peut être nécessaire.",""],
+ ["Google Scholar",[6],"Publications scientifiques et auteurs",0,"https://scholar.google.com/","",""],
+ ["Crossref",[6],"Métadonnées d’articles et de publications scientifiques",0,"https://search.crossref.org/","",""],
+ ["Europresse",[6,9],"Recherche dans la presse, selon l’abonnement disponible",2,"https://www.europresse.com/","",""],
+ ["Sqoop",[6],"Documents judiciaires et d’entreprise, notamment aux États-Unis",2,"https://sqoop.com/","Couverture surtout américaine.",""],
+ ["Shodan",[7],"Équipements et services exposés sur Internet",1,"https://www.shodan.io/","Périmètre autorisé uniquement.",""],
+ ["Censys",[7],"Hôtes, certificats et services Internet",1,"https://censys.com/","Périmètre autorisé uniquement.",""],
+ ["crt.sh",[7],"Journaux publics de certificats TLS",0,"https://crt.sh/","","z"],
+ ["theHarvester",[7],"Collecte de domaines, sous-domaines et coordonnées publiques",0,"https://github.com/laramies/theHarvester","Périmètre autorisé uniquement.",""],
+ ["SpiderFoot",[7],"Automatisation de collectes OSINT",0,"https://github.com/smicallef/spiderfoot","Périmètre autorisé uniquement.",""],
+ ["Recon-ng",[7],"Framework modulaire de reconnaissance Web",0,"https://github.com/lanmaster53/recon-ng","Périmètre autorisé uniquement.",""],
+ ["Photon",[7],"Exploration automatisée de sites Web",0,"https://github.com/s0md3v/Photon","Périmètre autorisé uniquement.",""],
+ ["Wayback Machine",[7,9],"Consultation de versions archivées de pages Web",0,"https://web.archive.org/","","z"],
+ ["Google Lens",[8],"Recherche visuelle à partir d’une image",0,"https://lens.google.com/","Image que tu es autorisé à examiner.","z"],
+ ["TinEye",[8],"Recherche inversée d’images",1,"https://tineye.com/","",""],
+ ["Yandex Images",[8],"Recherche d’images similaires",0,"https://yandex.com/images/","",""],
+ ["InVID-WeVerify",[8],"Vérification d’images et de vidéos, extraction d’images-clés",0,"https://www.invid-project.eu/","Recouper les résultats.",""],
+ ["YouTube DataViewer",[8],"Analyse de vidéos YouTube",2,"https://citizenevidence.amnestyusa.org/","Service historique, disponibilité à vérifier.","h"],
+ ["ExifTool",[8],"Extraction et analyse de métadonnées de fichiers",0,"https://exiftool.org/","Métadonnées parfois supprimées ou modifiées.","z"],
+ ["Metagoofil",[8],"Recherche de documents publics et extraction de métadonnées",0,"gh:metagoofil","",""],
+ ["Klaxon",[9],"Surveillance de changements sur des pages Web",2,"web:Klaxon surveillance de pages web","Vérifier le maintien du service.","h"],
+ ["Evernote",[9],"Prise de notes, classement et organisation de documents",1,"https://evernote.com/","Ce n’est pas un moteur d’enquête.",""],
+ ["Google Alerts",[9],"Alertes sur de nouvelles mentions indexées",1,"https://www.google.com/alerts","Couverture limitée aux contenus détectés et indexés.",""]
+].map(([n,f,d,t,u,w,fl])=>({n,f,d,t,u,w,fl}));
+const OBJ=[
+ {l:"Retrouver les profils d’une personne",t:["Maigret","Sherlock","WhatsMyName","Google / Google Dorks","LinkedIn"],note:"Un profil trouvé ne prouve pas l’identité de son titulaire : recoupe avec un élément indépendant."},
+ {l:"Vérifier un parcours professionnel",t:["LinkedIn","Pappers","Annuaire des entreprises","BODACC","Europresse","Wayback Machine"],note:"Privilégie les registres officiels aux agrégateurs."},
+ {l:"Auditer une adresse e-mail",t:["Have I Been Pwned","Hunter.io","Epieos","user-scanner"],note:"user-scanner sert à compléter un audit de tes propres comptes."},
+ {l:"Cartographier les relations",t:["Maltego","Oligrapher","Pappers","Annuaire des entreprises"],note:"Distingue les relations démontrées par des sources de celles qui sont seulement supposées."},
+ {l:"Auditer une entreprise",t:["Shodan","Censys","crt.sh","theHarvester","SpiderFoot"],note:"À réserver à un périmètre pour lequel tu as une autorisation."},
+ {l:"Vérifier une image ou une vidéo",t:["Google Lens","TinEye","InVID-WeVerify","ExifTool"],note:"La recherche inversée ne garantit pas de retrouver la première publication."}
+];
+let toolObj=-1;
+function toolUrl(u){if(!u)return '';if(u.startsWith('gh:'))return 'https://github.com/search?type=repositories&q='+encodeURIComponent(u.slice(3));if(u.startsWith('web:'))return 'https://duckduckgo.com/?q='+encodeURIComponent(u.slice(4));return u}
+function initTools(){
+ $('tfam').innerHTML='<option value="">Toutes les familles</option>'+FAM.map(f=>`<option value="${f.id}">${esc(f.n)}</option>`).join('');
+ const chips=[['all','Tout afficher'],['zero','Ma sélection à 0 € (12 ressources)'],...OBJ.map((o,i)=>[String(i),o.l])];
+ $('tobj').innerHTML=chips.map(([k,l])=>`<button type="button" class="chipbtn" data-obj="${k}" aria-pressed="false">${esc(l)}</button>`).join('');
+ renderTools();
+}
+function renderTools(){
+ const q=$('tq').value.trim().toLowerCase(),fam=Number($('tfam').value)||0,tar=$('ttar').value;
+ const o=(toolObj===-1||toolObj==='zero')?null:OBJ[toolObj];
+ document.querySelectorAll('#tobj [data-obj]').forEach(b=>b.setAttribute('aria-pressed',String((toolObj===-1&&b.dataset.obj==='all')||String(toolObj)===b.dataset.obj)));
+ const note=$('tnote');
+ if(toolObj==='zero'){note.hidden=false;note.textContent='Sélection de départ sans abonnement payant pour l’usage de base. Have I Been Pwned et Epieos sont gratuits mais limités.'}
+ else if(o){note.hidden=false;note.textContent=o.note}else note.hidden=true;
+ const ok=t=>(!q||(t.n+' '+t.d).toLowerCase().includes(q))&&(tar===''||t.t===Number(tar))&&(!fam||t.f.includes(fam))&&(toolObj===-1||(toolObj==='zero'?t.fl.includes('z'):o.t.includes(t.n)));
+ let total=0;
+ const html=FAM.map(f=>{
+  const list=TOOLS.filter(t=>ok(t)&&(fam?t.f.includes(fam):t.f[0]===f.id));
+  if(!list.length)return '';total+=list.length;
+  return `<details${(fam||q||toolObj!==-1)?' open':''}><summary>${esc(f.n)} <span class="n">(${list.length})</span></summary>${f.note?`<p class="famnote">${esc(f.note)}</p>`:''}<div class="toolgrid">${list.map(t=>{const u=toolUrl(t.u);const lab=!u?'':t.u.startsWith('gh:')?'Chercher le dépôt GitHub':t.u.startsWith('web:')?'Chercher le service':'Ouvrir';
+   const fams=t.f.map(id=>FAM.find(x=>x.id===id).n.split(',')[0]).join(' · ');
+   return `<div class="tool"><b>${esc(t.n)}</b> <span class="badge ${TCLASS[t.t]}">${esc(TARIFS[t.t])}</span>${t.fl.includes('h')?'<span class="flag">Service historique</span>':''}<p>${esc(t.d)}</p>${t.w?`<p class="warn">${esc(t.w)}</p>`:''}<div class="meta"><span>${esc(fams)}</span>${u?`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${lab}</a>`:'<span>Pas de lien</span>'}</div></div>`}).join('')}</div></details>`}).join('');
+ $('tools').innerHTML=html||'<div class="empty">Aucun outil ne correspond à ces filtres.</div>';
+ $('tcount').textContent=total+' outil'+(total>1?'s':'')+' affiché'+(total>1?'s':'');
+}
+$('tq').addEventListener('input',renderTools);
+$('tfam').addEventListener('change',renderTools);
+$('ttar').addEventListener('change',renderTools);
+$('tobj').addEventListener('click',ev=>{const b=ev.target.closest('[data-obj]');if(!b)return;const k=b.dataset.obj;toolObj=(k==='all')?-1:(k==='zero'?'zero':Number(k));renderTools()});
+initTools();
 
 loadDraft();render();gate();
 </script>
