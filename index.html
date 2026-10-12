@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Outil personnel pour organiser des recherches OSINT dans des sources publiques et produire un rapport traçable.">
+<title>OSINT Public — Recherche & rapport</title>
+<style>
+:root{color-scheme:dark;--bg:#0a1020;--panel:#121c31;--panel2:#17243d;--line:#2d3d5b;--text:#edf3ff;--muted:#aab8d2;--blue:#8ab4ff;--green:#8de0b8;--amber:#f7d18a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#172743 0,#0a1020 60%);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header,main,.foot{max-width:1180px;margin:auto;padding-left:18px;padding-right:18px}header{padding-top:30px;padding-bottom:20px}h1{font-size:clamp(2rem,5vw,3rem);letter-spacing:-.04em;line-height:1.1;margin:.3rem 0}h2{font-size:1.15rem;margin:0 0 10px}.eyebrow{font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);font-weight:800}p{color:var(--muted);margin:.4rem 0}.chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px}.chip{font-size:.77rem;border:1px solid var(--line);border-radius:999px;padding:4px 9px;color:var(--muted)}
+main{display:grid;grid-template-columns:1fr 1fr;gap:15px;padding-bottom:32px}.panel{background:#121c31ee;border:1px solid var(--line);border-radius:16px;padding:19px;min-width:0;box-shadow:0 12px 34px #0002}.wide{grid-column:1/-1}.grid2,.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}label{display:block;font-size:.86rem;font-weight:700;margin:10px 0 5px;color:#dce7fc}input,select,textarea{width:100%;background:#0b1427;border:1px solid #354969;border-radius:9px;padding:10px 11px;color:var(--text);font:inherit}input:focus,select:focus,textarea:focus{outline:2px solid #8ab4ff66;border-color:var(--blue)}button{background:#1c2c49;color:var(--text);border:1px solid #405779;padding:10px 13px;border-radius:9px;font:inherit;font-weight:700;cursor:pointer}button.primary{background:var(--blue);border-color:var(--blue);color:#0b1427}button:hover{filter:brightness(1.1)}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.notice{margin-top:13px;padding:10px 12px;border-left:3px solid var(--amber);border-radius:7px;background:#322a1b;color:#f8e5be;font-size:.84rem}.searchlist{display:grid;grid-template-columns:1fr 1fr;gap:9px}.searchcard{padding:12px;border:1px solid var(--line);border-radius:11px;background:#0b1427}.searchcard b{display:block;margin-bottom:4px}.searchcard p{font-size:.81rem;margin:0 0 8px}.searchcard a{color:#b8d1ff;font-weight:700;text-decoration:none}.searchcard a:hover{text-decoration:underline}.empty{padding:20px;text-align:center;border:1px dashed #354969;border-radius:10px;color:var(--muted)}.full{grid-column:1/-1}.stats{display:flex;gap:9px;flex-wrap:wrap;margin:10px 0 15px}.stat{border:1px solid var(--line);border-radius:10px;padding:9px 13px;min-width:100px}.stat b{font-size:1.3rem;display:block}.stat span{font-size:.77rem;color:var(--muted)}.tablewrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.85rem}th,td{border-bottom:1px solid var(--line);padding:9px 7px;text-align:left;vertical-align:top}th{font-size:.73rem;text-transform:uppercase;letter-spacing:.06em;color:#b8c9e7}td a{color:#b8d1ff;overflow-wrap:anywhere}.tag{background:#243754;padding:3px 6px;border-radius:5px;font-size:.75rem}.foot{font-size:.8rem;color:var(--muted);padding-bottom:28px}.small{font-size:.8rem}
+@media(max-width:800px){main{grid-template-columns:1fr}.wide{grid-column:auto}.grid2,.formgrid,.searchlist{grid-template-columns:1fr}.full{grid-column:auto}.panel{padding:15px}}
+</style>
+</head>
+<body>
+<header>
+<div class="eyebrow">OSINT · sources publiques · prototype local</div>
+<h1>OSINT Public</h1>
+<p>Prépare tes recherches, consigne les sources et construis un rapport vérifiable depuis une seule interface.</p>
+<div class="chips"><span class="chip">Gratuit</span><span class="chip">Sans compte</span><span class="chip">Pas de serveur</span><span class="chip">Export HTML / CSV / JSON</span></div>
+</header>
+<main>
+<section class="panel">
+<h2>1. Identifiants de recherche</h2>
+<p>Les champs sont utilisés pour préparer des liens de recherche. Ils ne sont pas envoyés à un serveur par cette application.</p>
+<div class="grid2">
+<div><label for="first">Prénom</label><input id="first" autocomplete="off" placeholder="Prénom"></div>
+<div><label for="last">Nom</label><input id="last" autocomplete="off" placeholder="Nom"></div>
+<div><label for="email">Adresse e-mail</label><input id="email" type="email" autocomplete="off" placeholder="nom@exemple.fr"></div>
+<div><label for="phone">Téléphone</label><input id="phone" autocomplete="off" placeholder="+33…"></div>
+</div>
+<label for="purpose">Cadre de recherche</label>
+<select id="purpose"><option>Recherche professionnelle / sources publiques</option><option>Recherche sur mes propres informations</option><option>Recherche avec le consentement de la personne</option><option>Recherche journalistique d’intérêt public</option></select>
+<div class="notice">Utilise l’application pour des recherches légitimes. Elle ne doit pas servir à accéder à des comptes privés, retrouver une adresse personnelle ou suivre les déplacements privés d’une personne. Les voyages ne sont consignés que s’ils sont explicitement documentés dans des publications publiques.</div>
+<div class="actions"><button class="primary" id="generate">Générer les recherches</button><button id="clear">Effacer les champs</button></div>
+</section>
+<section class="panel">
+<h2>2. Recherches préparées</h2>
+<p>Les liens ouvrent des services externes. Vérifie chaque résultat et les conditions du service utilisé.</p>
+<div id="searches" class="searchlist"><div class="empty">Saisis au moins un identifiant, puis clique sur « Générer les recherches ».</div></div>
+</section>
+<section class="panel wide">
+<h2>3. Ajouter une source au rapport</h2>
+<p>Consigne un résumé factuel, le lien original et les limites connues. Évite de recopier les données personnelles non nécessaires.</p>
+<div class="formgrid">
+<div><label for="category">Catégorie</label><select id="category"><option>Identité / homonymie</option><option>Profil professionnel</option><option>Publication publique</option><option>Photo / vidéo publique</option><option>Voyage explicitement publié</option><option>Source officielle</option><option>Autre</option></select></div>
+<div><label for="confidence">Niveau de confiance</label><select id="confidence"><option>À vérifier</option><option>Faible</option><option>Moyen</option><option>Élevé</option><option>Confirmé par deux sources indépendantes</option></select></div>
+<div class="full"><label for="description">Résumé factuel</label><textarea id="description" rows="2" placeholder="Que montre réellement la source ?"></textarea></div>
+<div class="full"><label for="source">URL de la source publique</label><input id="source" type="url" placeholder="https://…"></div>
+<div><label for="pubdate">Date de publication (si connue)</label><input id="pubdate" type="date"></div>
+<div><label for="notes">Limites / éléments à vérifier</label><input id="notes" placeholder="Ex. lieu mentionné, présence non confirmée"></div>
+</div>
+<div class="actions"><button class="primary" id="add">Ajouter au rapport</button><button id="csv">Exporter CSV</button><button id="json">Exporter JSON</button><button id="html">Télécharger le rapport HTML</button><button id="print">Imprimer / PDF</button></div>
+<div class="notice">Une date de publication n’est pas nécessairement la date de prise de vue ou du déplacement. Distingue toujours ce que la source affirme de ce qui a été vérifié.</div>
+</section>
+<section class="panel wide">
+<h2>4. Rapport de recherche</h2>
+<div class="stats"><div class="stat"><b id="count">0</b><span>Résultats</span></div><div class="stat"><b id="sourceCount">0</b><span>Sources distinctes</span></div><div class="stat"><b id="checkCount">0</b><span>À vérifier</span></div></div>
+<div id="results"><div class="empty">Aucun résultat ajouté pour le moment.</div></div>
+</section>
+</main>
+<div class="foot">Prototype statique. Il prépare des recherches et organise les résultats saisis manuellement ; il ne collecte pas automatiquement les pages. Une automatisation future devra passer par des API officielles ou des sources autorisées, avec quotas et clés protégées.</div>
+<script>
+const $=id=>document.getElementById(id), val=id=>$(id).value.trim();
+let entries=[];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const quoted=s=>'"'+s.replace(/"/g,' ')+'"';
+const card=(title,desc,url)=>({title,desc,url});
+function generate(){
+ const first=val('first'),last=val('last'),name=[first,last].filter(Boolean).join(' '),email=val('email'),phone=val('phone');
+ if(!name&&!email&&!phone){$('searches').innerHTML='<div class="empty">Saisis au moins un identifiant.</div>';return}
+ const a=[];
+ if(name){
+  a.push(card('Recherche Web exacte','Pages publiques correspondant au nom','https://www.google.com/search?q='+encodeURIComponent(quoted(name))));
+  a.push(card('Profils professionnels','Pages publiques professionnelles','https://www.google.com/search?q='+encodeURIComponent(quoted(name)+' (site:linkedin.com/in OR site:github.com)')));
+  a.push(card('Photos et vidéos publiques','Publications indexées et contenus publics','https://www.google.com/search?q='+encodeURIComponent(quoted(name)+' (photo OR vidéo OR interview)')));
+  a.push(card('Voyages explicitement publiés','Récits publics, sans déduire une localisation privée','https://www.google.com/search?q='+encodeURIComponent(quoted(name)+' (voyage OR séjour OR travel)')));
+  a.push(card('Recherche d’images','Résultats d’images indexés','https://www.google.com/search?tbm=isch&q='+encodeURIComponent(quoted(name))));
+  a.push(card('Bing — seconde recherche','Comparer les résultats d’un autre moteur','https://www.bing.com/search?q='+encodeURIComponent(quoted(name))));
+  a.push(card('Google Lens','Comparer une image que tu es autorisé à examiner','https://lens.google/'));
+ }
+ if(email){
+  a.push(card('Recherche de l’e-mail exact','Mentions publiques indexées','https://www.google.com/search?q='+encodeURIComponent(quoted(email))));
+  a.push(card('Have I Been Pwned','Vérifier l’exposition de ta propre adresse ou avec autorisation','https://haveibeenpwned.com/'));
+  a.push(card('Epieos','Vérifications liées à l’e-mail, selon l’offre','https://epieos.com/'));
+ }
+ if(phone){
+  a.push(card('Recherche du téléphone exact','Mentions accessibles publiquement','https://www.google.com/search?q='+encodeURIComponent(quoted(phone))));
+  a.push(card('Recherche complémentaire','Comparer les résultats dans Bing','https://www.bing.com/search?q='+encodeURIComponent(quoted(phone))));
+ }
+ a.push(card('Annuaire des entreprises','Activités professionnelles publiées officiellement','https://annuaire-entreprises.data.gouv.fr/'));
+ a.push(card('BODACC','Annonces officielles d’entreprises','https://www.bodacc.fr/'));
+ a.push(card('Wayback Machine','Versions archivées de pages publiques','https://web.archive.org/'));
+ $('searches').innerHTML=a.map(x=>`<div class="searchcard"><b>${esc(x.title)}</b><p>${esc(x.desc)}</p><a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">Ouvrir la recherche ↗</a></div>`).join('');
+}
+function render(){
+ $('count').textContent=entries.length;
+ $('sourceCount').textContent=new Set(entries.map(e=>e.source).filter(Boolean)).size;
+ $('checkCount').textContent=entries.filter(e=>/vérifier|faible/i.test(e.confidence)).length;
+ if(!entries.length){$('results').innerHTML='<div class="empty">Aucun résultat ajouté pour le moment.</div>';return}
+ $('results').innerHTML='<div class="tablewrap"><table><thead><tr><th>Catégorie</th><th>Résumé factuel</th><th>Source</th><th>Confiance</th><th>Date</th><th>Limites</th><th></th></tr></thead><tbody>'+entries.map((e,i)=>`<tr><td>${esc(e.category)}</td><td>${esc(e.description)}</td><td>${e.source?`<a href="${esc(e.source)}" target="_blank" rel="noopener noreferrer">Ouvrir ↗</a>`:'—'}</td><td><span class="tag">${esc(e.confidence)}</span></td><td>${esc(e.pubdate||'—')}</td><td>${esc(e.notes||'—')}</td><td><button data-delete="${i}" aria-label="Supprimer">×</button></td></tr>`).join('')+'</tbody></table></div>';
+ document.querySelectorAll('[data-delete]').forEach(b=>b.addEventListener('click',()=>{entries.splice(Number(b.dataset.delete),1);render()}));
+}
+function download(name,content,type){const blob=new Blob([content],{type}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function payload(){return {generatedAt:new Date().toISOString(),purpose:val('purpose'),subject:{firstName:val('first'),lastName:val('last'),email:val('email'),phone:val('phone')},results:entries}}
+$('generate').addEventListener('click',generate);
+$('clear').addEventListener('click',()=>{['first','last','email','phone'].forEach(id=>$(id).value='');$('searches').innerHTML='<div class="empty">Champs effacés. Saisis les identifiants puis génère les recherches.</div>'});
+$('add').addEventListener('click',()=>{
+ const description=val('description'),source=val('source');
+ if(!description){alert('Ajoute un résumé factuel.');return}
+ if(source){try{const u=new URL(source);if(!['https:','http:'].includes(u.protocol))throw 0}catch{alert('URL invalide : utilise http ou https.');return}}
+ entries.push({category:val('category'),confidence:val('confidence'),description,source,pubdate:val('pubdate'),notes:val('notes')});
+ ['description','source','pubdate','notes'].forEach(id=>$(id).value='');render();
+});
+$('json').addEventListener('click',()=>download('rapport-osint.json',JSON.stringify(payload(),null,2),'application/json;charset=utf-8'));
+$('csv').addEventListener('click',()=>{const rows=[['Catégorie','Résumé','URL source','Confiance','Date publication','Limites'],...entries.map(e=>[e.category,e.description,e.source,e.confidence,e.pubdate,e.notes])];const s=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');download('rapport-osint.csv','\ufeff'+s,'text/csv;charset=utf-8')});
+$('html').addEventListener('click',()=>{
+ const subject=[val('first'),val('last')].filter(Boolean).join(' ')||'Sujet non renseigné';
+ const body=entries.map(e=>`<article><h2>${esc(e.category)}</h2><p>${esc(e.description)}</p><p>Confiance : <b>${esc(e.confidence)}</b> · Date de publication : ${esc(e.pubdate||'non renseignée')}</p>${e.source?`<p>Source : <a href="${esc(e.source)}">${esc(e.source)}</a></p>`:''}<p>Limites : ${esc(e.notes||'non renseignées')}</p></article>`).join('');
+ download('rapport-osint.html','<!doctype html><html lang="fr"><meta charset="utf-8"><title>Rapport OSINT</title><style>body{font:16px/1.6 system-ui;max-width:900px;margin:40px auto;padding:0 20px;color:#172033}article{border-top:1px solid #ccc;padding:15px 0}a{overflow-wrap:anywhere}</style><h1>Rapport OSINT — '+esc(subject)+'</h1><p>Généré le '+new Date().toLocaleString('fr-FR')+'. Rapport constitué à partir des éléments consignés par l’utilisateur ; exactitude non garantie.</p>'+body+'</html>','text/html;charset=utf-8');
+});
+$('print').addEventListener('click',()=>window.print());
+</script>
+</body></html>
